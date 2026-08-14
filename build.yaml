@@ -1,0 +1,31 @@
+# Code-generation configuration.
+#
+# The installed SDK (Dart 3.13) emits dot-shorthand AST nodes that the analyzer
+# version (7.6.0) pulled in transitively by the current generator toolchain
+# cannot serialize. This crashes any builder that resolves a Flutter-importing
+# library. Mitigations:
+#   * riverpod_generator / freezed / json_serializable are disabled — no
+#     annotated sources use them yet.
+#   * Drift codegen is scoped to the platform-agnostic database sources only
+#     (app_database.dart + DAOs). The production connection lives in
+#     native_open.dart, which imports Flutter plugins and is intentionally not
+#     analyzed by any generator.
+# Re-enable/broaden once the codegen toolchain is upgraded to an analyzer that
+# supports the installed SDK.
+targets:
+  $default:
+    builders:
+      drift_dev:drift_dev:
+        generate_for:
+          - lib/core/database/app_database.dart
+          - lib/core/database/daos/**
+      source_gen:combining_builder:
+        generate_for:
+          - lib/core/database/app_database.dart
+          - lib/core/database/daos/**
+      riverpod_generator:riverpod_generator:
+        enabled: false
+      freezed:freezed:
+        enabled: false
+      json_serializable:json_serializable:
+        enabled: false
