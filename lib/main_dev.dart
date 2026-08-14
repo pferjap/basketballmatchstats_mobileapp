@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'core/config/env_config.dart';
+import 'core/config/environment.dart';
 
 /// Development entry point.
-///
-/// Full environment configuration (base URLs, feature flags) is wired in a
-/// later task via `EnvConfig`. For now this simply boots the app shell.
 void main() {
-  runApp(const HoopAnalyticsApp(environmentLabel: 'dev'));
+  EnvConfig.init(Environment.dev);
+  runApp(const ProviderScope(child: HoopAnalyticsApp()));
 }
