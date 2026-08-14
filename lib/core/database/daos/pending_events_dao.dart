@@ -58,6 +58,21 @@ class PendingEventsDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Returns an event to the `pending` queue and increments its retry count
+  /// after a transient failure (5xx / timeout / no network).
+  Future<void> markRetryable(String id) async {
+    await customUpdate(
+      'UPDATE pending_events SET status = ?, retry_count = retry_count + 1 '
+      'WHERE id = ?',
+      variables: <Variable<Object>>[
+        Variable<String>(PendingEventStatus.pending.name),
+        Variable<String>(id),
+      ],
+      updates: <TableInfo<Table, Object>>{pendingEvents},
+      updateKind: UpdateKind.update,
+    );
+  }
+
   /// Returns pending events in FIFO order (oldest first).
   Future<List<PendingEvent>> getPendingEvents() {
     return (select(pendingEvents)
