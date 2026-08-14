@@ -1,17 +1,17 @@
 # Code-generation configuration.
 #
-# The installed SDK (Dart 3.13) emits dot-shorthand AST nodes that the analyzer
-# version (7.6.0) pulled in transitively by the current generator toolchain
-# cannot serialize. This crashes any builder that resolves a Flutter-importing
-# library. Mitigations:
-#   * riverpod_generator / freezed / json_serializable are disabled — no
-#     annotated sources use them yet.
-#   * Drift codegen is scoped to the platform-agnostic database sources only
-#     (app_database.dart + DAOs). The production connection lives in
-#     native_open.dart, which imports Flutter plugins and is intentionally not
-#     analyzed by any generator.
-# Re-enable/broaden once the codegen toolchain is upgraded to an analyzer that
-# supports the installed SDK.
+# The installed SDK (Dart 3.13) is newer than the analyzer/freezed toolchain
+# that the current dependency constraints resolve to, so two incompatibilities
+# bite any code-generated output that touches Flutter or freezed:
+#   * analyzer 7.6.0 cannot serialize the SDK's dot-shorthand AST, crashing
+#     build_runner on any builder that resolves a Flutter-importing library.
+#   * freezed 2.5.x emits `final` on redirecting-factory parameters, which the
+#     Dart 3.13 front end rejects at compile time.
+# Mitigation: only Drift codegen runs, scoped to the platform-agnostic database
+# library + DAOs (no Flutter in their resolved closure). Freezed,
+# json_serializable, and riverpod_generator are disabled — the data-layer DTOs
+# and Riverpod providers are hand-written plain Dart instead. Re-enable once the
+# codegen toolchain supports the installed SDK.
 targets:
   $default:
     builders:
@@ -23,9 +23,9 @@ targets:
         generate_for:
           - lib/core/database/app_database.dart
           - lib/core/database/daos/**
-      riverpod_generator:riverpod_generator:
-        enabled: false
       freezed:freezed:
         enabled: false
       json_serializable:json_serializable:
+        enabled: false
+      riverpod_generator:riverpod_generator:
         enabled: false
