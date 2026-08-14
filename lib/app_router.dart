@@ -1,0 +1,132 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'core/routing/placeholder_page.dart';
+import 'features/auth/domain/entities/user.dart';
+import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/providers/auth_providers.dart';
+
+/// Route paths used across the app. Centralized so navigation calls and guards
+/// never rely on stringly-typed literals scattered through the codebase.
+abstract final class AppRoutes {
+  static const String login = '/login';
+  static const String home = '/';
+  static const String matchLive = '/matches/:id/live';
+  static const String matchAnnotate = '/matches/:id/annotate';
+  static const String teams = '/teams';
+  static const String players = '/players';
+  static const String settings = '/settings';
+}
+
+/// Roles allowed to open the live-annotation (Court View) screen (§13).
+const Set<UserRole> _annotationRoles = <UserRole>{
+  UserRole.statistician,
+  UserRole.clubAdmin,
+};
+
+/// Bridges Riverpod [authStateProvider] changes to go_router's
+/// `refreshListenable`, so the global redirect re-runs whenever the session
+/// status changes (login, logout, expiry).
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen<AuthState>(
+      authStateProvider,
+      (previous, next) {
+        if (previous?.status != next.status) {
+          notifyListeners();
+        }
+      },
+    );
+  }
+}
+
+/// The app's [GoRouter], with global auth and role guards (Plan.md T-012,
+/// Agent_Mobile.md §9.3/§13).
+///
+/// * Unauthenticated users are redirected to `/login` for any protected route.
+/// * Authenticated users on `/login` are sent to `/`.
+/// * `/matches/:id/annotate` additionally requires a STATISTICIAN or CLUB_ADMIN
+///   role; other roles are bounced back to `/`.
+final goRouterProvider = Provider<GoRouter>((ref) {
+  final refreshListenable = _AuthRefreshNotifier(ref);
+  ref.onDispose(refreshListenable.dispose);
+
+  return GoRouter(
+    initialLocation: AppRoutes.home,
+    refreshListenable: refreshListenable,
+    redirect: (context, state) {
+      final auth = ref.read(authStateProvider);
+      final loggedIn = auth.isAuthenticated;
+      final loggingIn = state.matchedLocation == AppRoutes.login;
+
+      if (!loggedIn) {
+        return loggingIn ? null : AppRoutes.login;
+      }
+
+      if (loggingIn) {
+        return AppRoutes.home;
+      }
+
+      if (state.fullPath == AppRoutes.matchAnnotate) {
+        final role = ref.read(currentUserProvider)?.role;
+        if (role == null || !_annotationRoles.contains(role)) {
+          return AppRoutes.home;
+        }
+      }
+
+      return null;
+    },
+    routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutes.login,
+        name: 'login',
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.home,
+        name: 'home',
+        builder: (context, state) => const PlaceholderPage(title: 'Inicio'),
+      ),
+      GoRoute(
+        path: AppRoutes.matchLive,
+        name: 'matchLive',
+        builder: (context, state) => PlaceholderPage(
+          title: 'Partido en vivo',
+          subtitle: 'Match ${state.pathParameters['id']}',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.matchAnnotate,
+        name: 'matchAnnotate',
+        builder: (context, state) => PlaceholderPage(
+          title: 'Anotación',
+          subtitle: 'Match ${state.pathParameters['id']}',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.teams,
+        name: 'teams',
+        builder: (context, state) => const PlaceholderPage(title: 'Equipos'),
+      ),
+      GoRoute(
+        path: AppRoutes.players,
+        name: 'players',
+        builder: (context, state) => const PlaceholderPage(title: 'Jugadores'),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        name: 'settings',
+        builder: (context, state) => const PlaceholderPage(title: 'Ajustes'),
+      ),
+    ],
+    errorBuilder: (context, state) => PlaceholderPage(
+      title: 'Ruta no encontrada',
+      subtitle: state.uri.toString(),
+    ),
+  );
+});
+
+/// Exposed for diagnostics/logging in debug builds.
+@visibleForTesting
+Set<UserRole> get annotationRoles => _annotationRoles;
