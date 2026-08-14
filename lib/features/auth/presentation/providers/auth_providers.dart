@@ -79,10 +79,17 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   /// Restores a previously cached session, if any (used on app start).
+  ///
+  /// Best-effort: any storage error leaves the state untouched (logged out)
+  /// rather than blocking app startup.
   Future<void> restoreSession() async {
-    final user = await _repository.getCurrentUser();
-    if (user != null) {
-      state = AuthState(status: AuthStatus.authenticated, user: user);
+    try {
+      final user = await _repository.getCurrentUser();
+      if (user != null) {
+        state = AuthState(status: AuthStatus.authenticated, user: user);
+      }
+    } catch (_) {
+      // Ignore: an unreadable cache simply means no session to restore.
     }
   }
 

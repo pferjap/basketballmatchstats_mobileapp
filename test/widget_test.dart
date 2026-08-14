@@ -1,6 +1,7 @@
 // Basic smoke tests for the HoopAnalytics application shell and theme wiring.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hoop_analytics/app.dart';
@@ -13,15 +14,19 @@ void main() {
     EnvConfig.init(Environment.dev);
   });
 
-  testWidgets('App shell renders active environment', (WidgetTester tester) async {
-    await tester.pumpWidget(const HoopAnalyticsApp());
+  testWidgets('unauthenticated launch lands on the login screen',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const ProviderScope(child: HoopAnalyticsApp()));
+    await tester.pumpAndSettle();
 
-    expect(find.text('HoopAnalytics — dev'), findsOneWidget);
-    expect(find.text(EnvConfig.instance.baseUrl), findsOneWidget);
+    expect(find.text('Bienvenido de nuevo'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
-  testWidgets('App applies the dark design-system theme', (WidgetTester tester) async {
-    await tester.pumpWidget(const HoopAnalyticsApp());
+  testWidgets('App applies the dark design-system theme',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const ProviderScope(child: HoopAnalyticsApp()));
+    await tester.pumpAndSettle();
 
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     final theme = materialApp.theme!;
