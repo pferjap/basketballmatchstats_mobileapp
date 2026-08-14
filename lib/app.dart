@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/config/env_config.dart';
+import 'core/theme/app_theme.dart';
 
 /// Root widget of the HoopAnalytics application.
 ///
@@ -17,10 +18,7 @@ class HoopAnalyticsApp extends StatelessWidget {
     return MaterialApp(
       title: 'HoopAnalytics',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF5A623)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.dark,
       home: const _PlaceholderHome(),
     );
   }
