@@ -39,6 +39,36 @@ subprojects {
     }
 }
 
+// Some plugins (e.g. sentry_flutter) still declare a lower compileSdk than the
+// app. When a transitive plugin such as package_info_plus publishes AAR
+// metadata requiring consumers to compile against Android SDK 36, those lagging
+// plugins fail :checkDebugAarMetadata with:
+//   "Dependency ':package_info_plus' requires ... compile against version 36 or
+//    later ... :sentry_flutter is currently compiled against android-34."
+// Raise every Android subproject that compiles below the app's compileSdk up to
+// at least 36 so plugin AAR metadata requirements are satisfied. Subprojects
+// already at 36+ are left untouched.
+subprojects {
+    val forceCompileSdk =
+        Action<Project> {
+            val android = extensions.findByName("android")
+            if (android is com.android.build.gradle.BaseExtension) {
+                val current =
+                    android.compileSdkVersion
+                        ?.removePrefix("android-")
+                        ?.toIntOrNull() ?: 0
+                if (current < 36) {
+                    android.compileSdkVersion(36)
+                }
+            }
+        }
+    if (state.executed) {
+        forceCompileSdk.execute(this)
+    } else {
+        afterEvaluate { forceCompileSdk.execute(this) }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
