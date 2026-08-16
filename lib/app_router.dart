@@ -7,6 +7,8 @@ import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/main_menu_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
+import 'features/matches/presentation/models/court_view_args.dart';
+import 'features/matches/presentation/pages/court_view_page.dart';
 import 'features/matches/presentation/pages/match_live_page.dart';
 
 /// Route paths used across the app. Centralized so navigation calls and guards
@@ -143,10 +145,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.matchAnnotate,
         name: 'matchAnnotate',
-        builder: (context, state) => PlaceholderPage(
-          title: 'Anotación',
-          subtitle: 'Match ${state.pathParameters['id']}',
-        ),
+        builder: (context, state) {
+          final args = state.extra;
+          return CourtViewPage(
+            matchId: state.pathParameters['id']!,
+            args: args is CourtViewArgs ? args : null,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.teams,

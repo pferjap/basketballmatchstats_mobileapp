@@ -114,7 +114,7 @@ void main() {
     );
 
     expect(_currentLocation(container), '/matches/42/annotate');
-    expect(find.text('Anotación'), findsWidgets);
+    expect(find.text('1er CUARTO'), findsWidgets);
   });
 
   testWidgets('club admin can open the annotation route', (tester) async {
