@@ -7,6 +7,7 @@ import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/main_menu_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
+import 'features/matches/presentation/pages/match_live_page.dart';
 
 /// Route paths used across the app. Centralized so navigation calls and guards
 /// never rely on stringly-typed literals scattered through the codebase.
@@ -131,10 +132,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.matchLive,
         name: 'matchLive',
-        builder: (context, state) => PlaceholderPage(
-          title: 'Partido en vivo',
-          subtitle: 'Match ${state.pathParameters['id']}',
-        ),
+        builder: (context, state) {
+          final args = state.extra;
+          return MatchLivePage(
+            matchId: state.pathParameters['id']!,
+            args: args is LiveMatchArgs ? args : null,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.matchAnnotate,
