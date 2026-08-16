@@ -24,6 +24,15 @@ abstract final class AppColors {
   /// Warning (light orange) — reconnecting status.
   static const Color warning = Color(0xFFFF9800);
 
+  /// Info accent (blue) — spectator / live-broadcast affordances.
+  static const Color info = Color(0xFF3B82F6);
+
+  /// Secondary accent (purple) — team administration affordances.
+  static const Color accentPurple = Color(0xFF8B5CF6);
+
+  /// Tertiary accent (gold) — platform administration affordances.
+  static const Color accentGold = Color(0xFFF2C94C);
+
   /// Primary text color.
   static const Color textPrimary = Color(0xFFFFFFFF);
 

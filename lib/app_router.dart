@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'core/routing/placeholder_page.dart';
 import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/main_menu_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 
 /// Route paths used across the app. Centralized so navigation calls and guards
@@ -14,6 +15,15 @@ abstract final class AppRoutes {
   static const String home = '/';
   static const String matchLive = '/matches/:id/live';
   static const String matchAnnotate = '/matches/:id/annotate';
+
+  /// Home-menu entry points (match selection screens land here until the
+  /// Matches feature — Phase 4+ — provides the real flows).
+  static const String annotateEntry = '/matches/annotate';
+  static const String spectateEntry = '/matches/spectate';
+  static const String statistics = '/statistics';
+  static const String myTeam = '/team';
+  static const String adminPanel = '/admin';
+
   static const String teams = '/teams';
   static const String players = '/players';
   static const String settings = '/settings';
@@ -86,7 +96,37 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
-        builder: (context, state) => const PlaceholderPage(title: 'Inicio'),
+        builder: (context, state) => const MainMenuPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.annotateEntry,
+        name: 'annotateEntry',
+        builder: (context, state) =>
+            const PlaceholderPage(title: 'Tomar anotaciones'),
+      ),
+      GoRoute(
+        path: AppRoutes.spectateEntry,
+        name: 'spectateEntry',
+        builder: (context, state) =>
+            const PlaceholderPage(title: 'Asistir a un partido'),
+      ),
+      GoRoute(
+        path: AppRoutes.statistics,
+        name: 'statistics',
+        builder: (context, state) =>
+            const PlaceholderPage(title: 'Estadísticas y resultados'),
+      ),
+      GoRoute(
+        path: AppRoutes.myTeam,
+        name: 'myTeam',
+        builder: (context, state) =>
+            const PlaceholderPage(title: 'Administrar mi equipo'),
+      ),
+      GoRoute(
+        path: AppRoutes.adminPanel,
+        name: 'adminPanel',
+        builder: (context, state) =>
+            const PlaceholderPage(title: 'Panel de administración'),
       ),
       GoRoute(
         path: AppRoutes.matchLive,

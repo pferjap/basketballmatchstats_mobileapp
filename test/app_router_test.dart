@@ -93,7 +93,7 @@ void main() {
     );
 
     expect(_currentLocation(container), AppRoutes.home);
-    expect(find.text('Inicio'), findsWidgets);
+    expect(find.text('¿Qué quieres hacer?'), findsOneWidget);
   });
 
   testWidgets('authenticated user on /login is sent home', (tester) async {
