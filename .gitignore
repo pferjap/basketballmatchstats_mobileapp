@@ -49,3 +49,5 @@ app.*.map.json
 
 # Local Flutter tool state
 .flutter_tool_state
+
+.fake

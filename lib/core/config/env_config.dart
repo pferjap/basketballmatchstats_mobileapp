@@ -62,8 +62,8 @@ class EnvConfig {
       case Environment.dev:
         return const EnvConfig._(
           environment: Environment.dev,
-          baseUrl: 'http://localhost:3000/api/v1',
-          wsUrl: 'ws://localhost:3000',
+          baseUrl: 'http://10.0.2.2:3001/',
+          wsUrl: 'ws://10.0.2.2:3001',
           enableOfflineMode: true,
           enableShotChart: true,
           enableAnalyticsModule: true,
@@ -80,8 +80,8 @@ class EnvConfig {
       case Environment.prod:
         return const EnvConfig._(
           environment: Environment.prod,
-          baseUrl: 'https://api.hoopanalytics.com/api/v1',
-          wsUrl: 'wss://api.hoopanalytics.com',
+          baseUrl: 'https://basketballmatchstats-latest.onrender.com/',
+          wsUrl: 'wss://basketballmatchstats-latest.onrender.com/',
           enableOfflineMode: true,
           enableShotChart: true,
           enableAnalyticsModule: false,
