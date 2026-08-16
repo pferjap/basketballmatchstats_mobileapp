@@ -72,7 +72,7 @@ class LoginPage extends ConsumerWidget {
                     const LoginForm(),
                     const SizedBox(height: kSpacingXL),
                     Text(
-                      '© 2024 BasketStats. Todos los derechos reservados.',
+                      '© ${DateTime.now().year} BasketStats. Todos los derechos reservados.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,

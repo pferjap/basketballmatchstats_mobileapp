@@ -162,8 +162,6 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   : const Text('Iniciar sesión'),
             ),
           ),
-          const SizedBox(height: kSpacingL),
-          const _OrDivider(),
         ],
       ),
     );
@@ -184,30 +182,6 @@ class _FieldLabel extends StatelessWidget {
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppColors.divider)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kSpacingM),
-          child: Text(
-            'o continúa con',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppColors.divider)),
-      ],
     );
   }
 }
