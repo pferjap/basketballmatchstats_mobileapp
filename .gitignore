@@ -33,6 +33,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Pub/Dart cache (created when LOCALAPPDATA is missing in Git Bash)
+/Pub/
+/Dart/
+
 # Symbolication related
 app.*.symbols
 
