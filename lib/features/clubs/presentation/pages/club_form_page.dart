@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
+import '../../../../core/widgets/admin/admin_form_field.dart';
 import '../../domain/entities/club.dart';
 import '../../domain/repositories/club_repository.dart';
 import '../providers/club_form_provider.dart';
@@ -157,26 +158,26 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
           child: ListView(
             padding: const EdgeInsets.all(kSpacingM),
             children: <Widget>[
-              _FormField(
+              AdminFormField(
                 controller: _name,
                 label: 'Nombre del club',
                 hint: 'Tigres Basket',
                 validator: _validateName,
                 textInputAction: TextInputAction.next,
               ),
-              _FormField(
+              AdminFormField(
                 controller: _city,
                 label: 'Ciudad',
                 hint: 'Madrid',
                 textInputAction: TextInputAction.next,
               ),
-              _FormField(
+              AdminFormField(
                 controller: _country,
                 label: 'País',
                 hint: 'España',
                 textInputAction: TextInputAction.next,
               ),
-              _FormField(
+              AdminFormField(
                 controller: _foundedYear,
                 label: 'Año de fundación',
                 hint: '2018',
@@ -188,7 +189,7 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
                 ],
                 textInputAction: TextInputAction.next,
               ),
-              _FormField(
+              AdminFormField(
                 controller: _logoUrl,
                 label: 'URL del escudo',
                 hint: 'https://…/escudo.png',
@@ -235,81 +236,6 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FormField extends StatelessWidget {
-  const _FormField({
-    required this.controller,
-    required this.label,
-    this.hint,
-    this.validator,
-    this.keyboardType,
-    this.inputFormatters,
-    this.textInputAction,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String? hint;
-  final FormFieldValidator<String>? validator;
-  final TextInputType? keyboardType;
-  final List<TextInputFormatter>? inputFormatters;
-  final TextInputAction? textInputAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: kSpacingM),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: kSpacingXS),
-          TextFormField(
-            controller: controller,
-            validator: validator,
-            keyboardType: keyboardType,
-            inputFormatters: inputFormatters,
-            textInputAction: textInputAction,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textSecondary),
-              filled: true,
-              fillColor: AppColors.surface,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: kSpacingM,
-                horizontal: kSpacingM,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.info),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.error),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

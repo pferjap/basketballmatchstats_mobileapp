@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
+import '../../../teams/presentation/pages/teams_tab.dart';
 import 'clubs_tab.dart';
 
 /// Admin panel shell: four tabs over the club's core entities (Plan.md T-026).
@@ -62,7 +63,7 @@ class AdminPanelPage extends StatelessWidget {
         body: const TabBarView(
           children: <Widget>[
             ClubsTab(),
-            _PendingTab(label: 'Equipos'),
+            TeamsTab(),
             _PendingTab(label: 'Jugadores'),
             _PendingTab(label: 'Partidos'),
           ],
