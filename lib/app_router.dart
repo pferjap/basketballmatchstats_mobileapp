@@ -9,7 +9,9 @@ import 'features/auth/presentation/pages/main_menu_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 import 'features/matches/presentation/models/court_view_args.dart';
 import 'features/matches/presentation/pages/court_view_page.dart';
+import 'features/matches/presentation/pages/match_list_page.dart';
 import 'features/matches/presentation/pages/match_live_page.dart';
+import 'features/matches/presentation/providers/match_list_provider.dart';
 
 /// Route paths used across the app. Centralized so navigation calls and guards
 /// never rely on stringly-typed literals scattered through the codebase.
@@ -105,13 +107,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.annotateEntry,
         name: 'annotateEntry',
         builder: (context, state) =>
-            const PlaceholderPage(title: 'Tomar anotaciones'),
+            const MatchListPage(mode: MatchListMode.annotate),
       ),
       GoRoute(
         path: AppRoutes.spectateEntry,
         name: 'spectateEntry',
         builder: (context, state) =>
-            const PlaceholderPage(title: 'Asistir a un partido'),
+            const MatchListPage(mode: MatchListMode.spectate),
       ),
       GoRoute(
         path: AppRoutes.statistics,
