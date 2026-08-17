@@ -140,28 +140,6 @@ const List<_MenuItem> _menuItems = <_MenuItem>[
   ),
   _MenuItem(
     group: _MenuGroup.administration,
-    icon: Icons.bar_chart,
-    title: 'Estadísticas y resultados',
-    subtitle: 'Consulta estadísticas, resultados y clasificaciones',
-    accent: AppColors.success,
-    route: AppRoutes.statistics,
-    allowedRoles: _allRoles,
-  ),
-  _MenuItem(
-    group: _MenuGroup.administration,
-    icon: Icons.shield,
-    title: 'Administrar mi equipo',
-    subtitle: 'Gestiona jugadores, cuerpo técnico y configuración del equipo',
-    accent: AppColors.accentPurple,
-    route: AppRoutes.myTeam,
-    allowedRoles: <UserRole>{
-      UserRole.coach,
-      UserRole.clubAdmin,
-      UserRole.superAdmin,
-    },
-  ),
-  _MenuItem(
-    group: _MenuGroup.administration,
     icon: Icons.settings,
     title: 'Panel de administración',
     subtitle: 'Administra la plataforma, usuarios, equipos y competiciones',

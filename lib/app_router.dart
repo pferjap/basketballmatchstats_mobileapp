@@ -25,8 +25,6 @@ abstract final class AppRoutes {
   /// Matches feature — Phase 4+ — provides the real flows).
   static const String annotateEntry = '/matches/annotate';
   static const String spectateEntry = '/matches/spectate';
-  static const String statistics = '/statistics';
-  static const String myTeam = '/team';
   static const String adminPanel = '/admin';
 
   static const String teams = '/teams';
@@ -114,18 +112,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'spectateEntry',
         builder: (context, state) =>
             const MatchListPage(mode: MatchListMode.spectate),
-      ),
-      GoRoute(
-        path: AppRoutes.statistics,
-        name: 'statistics',
-        builder: (context, state) =>
-            const PlaceholderPage(title: 'Estadísticas y resultados'),
-      ),
-      GoRoute(
-        path: AppRoutes.myTeam,
-        name: 'myTeam',
-        builder: (context, state) =>
-            const PlaceholderPage(title: 'Administrar mi equipo'),
       ),
       GoRoute(
         path: AppRoutes.adminPanel,
