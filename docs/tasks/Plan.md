@@ -694,9 +694,134 @@
 
 ---
 
-## Fase 9 — Observabilidad y Polish
+## Fase 9 — Feature: Registro de Usuarios y Aprobación
 
-### T-032: Integrar Sentry y logging estructurado
+> **Dependencia de backend (confirmar antes de empezar T-032).** `Agent_api.md` §5
+> sitúa el registro dentro del módulo `auth`, pero no documenta ni las rutas
+> concretas ni el concepto de "usuario pendiente de aprobación". Esta fase asume:
+> `POST /auth/register`, `GET /users?status=PENDING` (paginado),
+> `POST /users/:id/approve` y `POST /users/:id/reject`. Si el backend expone otra
+> forma, ajustar T-032 antes de construir la UI.
+>
+> **Regla de seguridad:** el rol que el usuario elige en el registro es una
+> *solicitud*, no una asignación. El backend nunca debe aceptar `SUPER_ADMIN` ni
+> `CLUB_ADMIN` desde el registro público, y el rol efectivo se fija al aprobar
+> la cuenta (Agent_Mobile.md §13, Agent_api.md §9).
+
+### T-032: Implementar domain y data layer de Registro y Aprobación
+
+**Objetivo:** Crear las entidades, contratos y llamadas REST que sostienen el alta
+de usuarios y su aprobación por parte de un administrador.
+**Acciones:**
+1. Añadir a `features/auth/domain/entities/user.dart` el enum
+   `UserStatus { pending, active, rejected }` y el campo `status`, más
+   `createdAt` para poder ordenar la cola de pendientes por antigüedad.
+2. Crear `features/auth/domain/repositories/auth_repository.dart` → añadir
+   `register(RegisterParams)`, con `RegisterParams`:
+   `name`, `email`, `password`, `clubId`, `requestedRole`.
+3. Crear use case `RegisterUseCase`.
+4. Ampliar `features/auth/data/datasources/auth_remote_datasource.dart` con
+   `POST /auth/register` y ampliar `user_model.dart` con el mapeo de `status`
+   (`PENDING` | `ACTIVE` | `REJECTED`) siguiendo el patrón de
+   `MatchStatusConverter`.
+5. Crear la feature `features/users/` (espeja el módulo `users/` del backend;
+   añade una carpeta que no está en Agent_Mobile.md §5, anotarlo al implementar):
+   - `domain/entities/pending_user.dart`: `id`, `name`, `email`, `requestedRole`,
+     `clubId`, `clubName`, `status`, `createdAt`.
+   - `domain/repositories/user_approval_repository.dart`:
+     `getPendingUsers(page, limit, {search})`, `approveUser(userId, {UserRole role})`,
+     `rejectUser(userId, {String? reason})`.
+   - Use cases: `GetPendingUsersUseCase`, `ApproveUserUseCase`, `RejectUserUseCase`.
+   - `data/models/pending_user_model.dart`, `data/datasources/user_approval_remote_datasource.dart`,
+     `data/repositories/user_approval_repository_impl.dart`.
+**Resultado:** Capa de dominio y datos del alta y la aprobación, testeable y sin
+dependencias de UI.
+
+---
+
+### T-033: Añadir enlace "Regístrate" al Login e implementar la pantalla de Registro
+
+**Objetivo:** Permitir que un usuario nuevo solicite una cuenta desde el login.
+**Referencia visual:** `docs/images/login_screen.png` (misma paleta y estilo de campos)
+**Diseño a implementar:**
+- **En `login_page.dart`:** la fila que hoy contiene "¿Olvidaste tu contraseña?"
+  pasa a ser un `Row` con ese enlace a la izquierda y un segundo enlace de texto
+  **"Regístrate"** a la derecha, en naranja (`AppColors.primary`) y con la misma
+  tipografía. Ambos son texto, sin botón ni fondo. Zona táctil ≥ 48dp.
+- **Pantalla de registro** (fondo `#0D1117`, cabecera con el logo BASKETSTATS):
+  - Título "Crea tu cuenta" + subtítulo "Te avisaremos cuando un administrador la apruebe".
+  - Campo "Nombre completo" (obligatorio).
+  - Campo "Correo electrónico" (obligatorio, con validación de formato).
+  - Campo "Contraseña" (obligatorio, mínimo 8 caracteres, con toggle de visibilidad).
+  - Campo "Repite la contraseña" (debe coincidir).
+  - Dropdown "Club" (lista de clubs existentes; reutiliza `clubRepositoryProvider`).
+  - Dropdown "¿Cómo vas a usar la app?" con **solo** los roles solicitables:
+    Espectador (`VIEWER`), Anotador (`STATISTICIAN`), Entrenador (`COACH`).
+  - Checkbox de aceptación de términos (obligatorio para habilitar el envío).
+  - Botón "Crear cuenta" full-width naranja, con spinner mientras se envía.
+  - Enlace inferior "¿Ya tienes cuenta? Inicia sesión" que vuelve a `/login`.
+- **Tras un alta correcta:** volver a `/login` mostrando un `SnackBar` verde
+  "Cuenta creada. Un administrador debe aprobarla antes de que puedas entrar."
+  El usuario **no** queda logueado: no hay sesión hasta la aprobación.
+- **Errores 4xx** (correo ya registrado, etc.): `SnackBar` rojo con
+  `errors[0].message` del backend (Agent_Mobile.md §12.2).
+**Acciones:**
+1. Modificar `features/auth/presentation/pages/login_page.dart` (o
+   `widgets/login_form.dart`) para añadir el enlace "Regístrate".
+2. Crear `features/auth/presentation/pages/register_page.dart`.
+3. Crear `features/auth/presentation/widgets/register_form.dart` (campos + validación).
+4. Crear `features/auth/presentation/providers/register_provider.dart`
+   (estado `isSubmitting` / `errorMessage`, método `submit`).
+5. Añadir la ruta pública `/register` en `app_router.dart`, exenta del guard de
+   auth igual que `/login`, y comprobar que el `redirect` global no la desvía.
+**Resultado:** Un usuario nuevo puede solicitar cuenta desde el login y recibe
+feedback claro de que queda pendiente de aprobación.
+
+---
+
+### T-034: Implementar pantalla de Usuarios pendientes de aprobación
+
+**Objetivo:** Dar al `SUPER_ADMIN` una cola donde revisar, aprobar o rechazar las
+solicitudes de alta.
+**Diseño a implementar:**
+- **Nueva card en el grupo "ADMINISTRACIÓN"** del menú principal (T-013):
+  "Usuarios pendientes" — icono de persona con check (`Icons.how_to_reg`),
+  subtítulo "Aprueba o rechaza las solicitudes de nuevas cuentas", borde
+  izquierdo azul (`AppColors.info`). **Visible solo para `SUPER_ADMIN`.**
+  Si hay solicitudes pendientes, mostrar su número en un badge sobre el icono.
+- **Pantalla de la cola** (mismo patrón visual que el panel de administración):
+  - AppBar con flecha atrás al menú principal y título "Usuarios pendientes".
+  - Barra de búsqueda "Buscar usuario..." (reutiliza `AdminSearchBar`).
+  - Lista paginada de cards; cada una muestra: avatar con iniciales, nombre
+    (bold), correo (gris), rol solicitado como chip naranja, club al que se une,
+    y la antigüedad de la solicitud ("Hace 3 días").
+  - Dos acciones por card: **"Aprobar"** (botón verde `AppColors.success`) y
+    **"Rechazar"** (botón rojo `AppColors.error`).
+  - Al aprobar: diálogo de confirmación que permite **ajustar el rol final**
+    antes de conceder el alta (el rol solicitado es solo una petición).
+  - Al rechazar: diálogo de confirmación reutilizando `showConfirmDeleteDialog`
+    con etiqueta "Rechazar", con campo opcional de motivo.
+  - Estado vacío: "No hay solicitudes pendientes."
+  - Footer de paginación (reutiliza `PaginationFooter`).
+**Acciones:**
+1. Crear `features/users/presentation/pages/pending_users_page.dart`.
+2. Crear `features/users/presentation/widgets/pending_user_card.dart`.
+3. Crear `features/users/presentation/providers/users_providers.dart`
+   (datasource, repositorio y use cases) y
+   `pending_users_provider.dart` (lista, página, búsqueda, aprobar, rechazar).
+4. Añadir la ruta `/admin/users` en `app_router.dart` con guard de rol
+   restringido a `SUPER_ADMIN` (patrón de `_adminRoles`, pero más estricto).
+5. Añadir la card al array `_menuItems` de `main_menu_page.dart` con
+   `allowedRoles: {UserRole.superAdmin}`.
+6. Exponer un provider con el contador de pendientes para el badge de la card.
+**Resultado:** El superadministrador ve las solicitudes de alta, las aprueba
+fijando el rol definitivo o las rechaza, y el usuario aprobado ya puede entrar.
+
+---
+
+## Fase 10 — Observabilidad y Polish
+
+### T-035: Integrar Sentry y logging estructurado
 
 **Objetivo:** Configurar crash reporting y logging (§4 Agent_Mobile.md — Observabilidad).
 **Acciones:**
@@ -708,7 +833,7 @@
 
 ---
 
-### T-033: Implementar indicadores de conexión y sincronización globales
+### T-036: Implementar indicadores de conexión y sincronización globales
 
 **Objetivo:** Widgets globales que muestran el estado del sistema.
 **Acciones:**
@@ -720,9 +845,9 @@
 
 ---
 
-## Fase 10 — Testing y CI
+## Fase 11 — Testing y CI
 
-### T-034: Implementar unit tests del core y domain
+### T-037: Implementar unit tests del core y domain
 
 **Objetivo:** Cobertura ≥ 80% en domain + core (§14 Agent_Mobile.md).
 **Acciones:**
@@ -736,7 +861,7 @@
 
 ---
 
-### T-035: Implementar widget tests de pantallas críticas
+### T-038: Implementar widget tests de pantallas críticas
 
 **Objetivo:** Validar la UI del Court View, Login y Panel de Administración.
 **Acciones:**
@@ -749,7 +874,7 @@
 
 ---
 
-### T-036: Configurar pipeline CI (GitHub Actions)
+### T-039: Configurar pipeline CI (GitHub Actions)
 
 **Objetivo:** Pipeline automatizado de calidad (§15 Agent_Mobile.md).
 **Acciones:**
@@ -763,9 +888,9 @@
 
 ---
 
-## Fase 11 — State Restoration y Final Polish
+## Fase 12 — State Restoration y Final Polish
 
-### T-037: Implementar state restoration de partido en progreso
+### T-040: Implementar state restoration de partido en progreso
 
 **Objetivo:** Persistir estado del partido para recuperación tras kill del SO (§17 Agent_Mobile.md).
 **Acciones:**
@@ -790,10 +915,11 @@
 | 6 | T-018 a T-021 | Pantalla de anotación (la más compleja) |
 | 7 | T-022 | Listado y selección de partidos |
 | 8 | T-023 a T-031 | Panel de Administración (CRUD clubs, equipos, jugadores, partidos) + Settings |
-| 9 | T-032 a T-033 | Observabilidad y UX polish |
-| 10 | T-034 a T-036 | Testing y CI/CD |
-| 11 | T-037 | State restoration |
+| 9 | T-032 a T-034 | Registro de usuarios y aprobación por administrador |
+| 10 | T-035 a T-036 | Observabilidad y UX polish |
+| 11 | T-037 a T-039 | Testing y CI/CD |
+| 12 | T-040 | State restoration |
 
-**Total: 37 tareas / 11 fases.**
+**Total: 40 tareas / 12 fases.**
 
 > Cada tarea es un commit atómico. Se recomienda hacer PR por fase completa.
