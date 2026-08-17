@@ -7,6 +7,7 @@ import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/main_menu_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
+import 'features/clubs/presentation/pages/admin_panel_page.dart';
 import 'features/matches/presentation/models/court_view_args.dart';
 import 'features/matches/presentation/pages/court_view_page.dart';
 import 'features/matches/presentation/pages/match_list_page.dart';
@@ -38,19 +39,22 @@ const Set<UserRole> _annotationRoles = <UserRole>{
   UserRole.clubAdmin,
 };
 
+/// Roles allowed to open the admin panel (Plan.md T-026, §13).
+const Set<UserRole> _adminRoles = <UserRole>{
+  UserRole.superAdmin,
+  UserRole.clubAdmin,
+};
+
 /// Bridges Riverpod [authStateProvider] changes to go_router's
 /// `refreshListenable`, so the global redirect re-runs whenever the session
 /// status changes (login, logout, expiry).
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(Ref ref) {
-    ref.listen<AuthState>(
-      authStateProvider,
-      (previous, next) {
-        if (previous?.status != next.status) {
-          notifyListeners();
-        }
-      },
-    );
+    ref.listen<AuthState>(authStateProvider, (previous, next) {
+      if (previous?.status != next.status) {
+        notifyListeners();
+      }
+    });
   }
 }
 
@@ -88,6 +92,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         }
       }
 
+      if (state.fullPath == AppRoutes.adminPanel) {
+        final role = ref.read(currentUserProvider)?.role;
+        if (role == null || !_adminRoles.contains(role)) {
+          return AppRoutes.home;
+        }
+      }
+
       return null;
     },
     routes: <RouteBase>[
@@ -116,8 +127,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminPanel,
         name: 'adminPanel',
-        builder: (context, state) =>
-            const PlaceholderPage(title: 'Panel de administración'),
+        builder: (context, state) => const AdminPanelPage(),
       ),
       GoRoute(
         path: AppRoutes.matchLive,
