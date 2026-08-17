@@ -55,3 +55,4 @@ app.*.map.json
 .flutter_tool_state
 
 .fake
+android/build/reports/

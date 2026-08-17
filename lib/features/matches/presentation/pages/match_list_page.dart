@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../domain/entities/match.dart';
@@ -101,6 +102,14 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
+        // The home menu navigates here with `go`, which replaces the location
+        // instead of stacking it, so there is no route to pop — send the user
+        // back to the main menu explicitly.
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver al menú principal',
+          onPressed: () => context.go(AppRoutes.home),
+        ),
         title: Text(
           _title,
           style: const TextStyle(
