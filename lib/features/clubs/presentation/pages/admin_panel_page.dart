@@ -47,9 +47,10 @@ class AdminPanelPage extends StatelessWidget {
               ),
             ],
           ),
+          // Non-scrollable so the four tabs split the full width evenly; a
+          // scrollable TabBar sizes each tab to its label and leaves a gap on
+          // the right.
           bottom: const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
             indicatorColor: AppColors.info,
             labelColor: AppColors.info,
             unselectedLabelColor: AppColors.textSecondary,
