@@ -9,6 +9,7 @@
 ## Fase 0 — Scaffolding del Proyecto
 
 ### T-001: Crear proyecto Flutter y configurar entorno base
+
 **Objetivo:** Inicializar el proyecto Flutter con la estructura de carpetas definida en Agent_Mobile.md §5.
 **Acciones:**
 1. `flutter create --org com.hoopanalytics --project-name hoop_analytics .` (en la raíz del repo)
@@ -24,6 +25,7 @@
 ---
 
 ### T-002: Configurar dependencias del proyecto (pubspec.yaml)
+
 **Objetivo:** Añadir todas las dependencias del stack tecnológico (§4 Agent_Mobile.md).
 **Acciones:**
 1. Añadir dependencias principales:
@@ -67,6 +69,7 @@
 ---
 
 ### T-003: Configurar sistema de entornos (Flavors)
+
 **Objetivo:** Implementar la configuración multi-entorno (§11 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/core/config/environment.dart` con el enum `Environment { dev, staging, prod }`.
@@ -80,6 +83,7 @@
 ## Fase 1 — Core Infrastructure
 
 ### T-004: Implementar sistema de diseño (Theme)
+
 **Objetivo:** Crear el sistema de diseño visual basado en las capturas de pantalla (fondo oscuro #1a1a2e, acentos naranja #F5A623, verde #4CAF50, rojo #E53935).
 **Acciones:**
 1. Crear `lib/core/theme/app_colors.dart`:
@@ -103,6 +107,7 @@
 ---
 
 ### T-005: Implementar manejo global de errores y Failures
+
 **Objetivo:** Crear las clases de error que mapean respuestas de la API (§5 y §6 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/core/error/failures.dart`:
@@ -120,6 +125,7 @@
 ---
 
 ### T-006: Implementar cliente Dio con interceptores
+
 **Objetivo:** Configurar Dio con AuthInterceptor y RetryInterceptor (§8.3 y §9.2 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/core/network/dio_client.dart`:
@@ -139,6 +145,7 @@
 ---
 
 ### T-007: Implementar WebSocket Manager
+
 **Objetivo:** Crear el singleton de conexión WebSocket con reconexión automática (§8.1 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/core/network/ws_manager.dart`:
@@ -156,6 +163,7 @@
 ---
 
 ### T-008: Implementar base de datos local (Drift)
+
 **Objetivo:** Configurar Drift con la tabla de cola offline (§10.1 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/core/database/app_database.dart`:
@@ -169,6 +177,7 @@
 ---
 
 ### T-009: Implementar SyncService (cola offline)
+
 **Objetivo:** Servicio que sincroniza eventos pendientes cuando hay red (§10.2 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/core/network/sync_service.dart`:
@@ -185,6 +194,7 @@
 ## Fase 2 — Feature: Autenticación
 
 ### T-010: Implementar domain y data layer de Auth
+
 **Objetivo:** Crear entidades, repositorio e interfaz para autenticación.
 **Acciones:**
 1. `features/auth/domain/entities/user.dart`: Entidad `User` con `id`, `email`, `name`, `role` (enum), `clubId`, `avatarUrl`.
@@ -200,6 +210,7 @@
 ---
 
 ### T-011: Implementar presentation layer de Auth (Login Screen)
+
 **Objetivo:** Crear la pantalla de Login basada en el diseño de `login_screen.png`.
 **Referencia visual:** `docs/images/login_screen.png`
 **Diseño a implementar:**
@@ -225,6 +236,7 @@
 ---
 
 ### T-012: Configurar go_router con guards de autenticación
+
 **Objetivo:** Definir el árbol de rutas con protección por auth y rol (§9.3 Agent_Mobile.md).
 **Acciones:**
 1. Crear `lib/app_router.dart`:
@@ -244,6 +256,7 @@
 ## Fase 3 — Feature: Menú Principal (Home)
 
 ### T-013: Implementar pantalla de Menú Principal (Home)
+
 **Objetivo:** Crear la pantalla principal post-login basada en `main_menu_screen.png`.
 **Referencia visual:** `docs/images/main_menu_screen.png`
 **Diseño a implementar:**
@@ -276,6 +289,7 @@
 ## Fase 4 — Feature: Matches (Modelo de datos)
 
 ### T-014: Implementar modelos de datos de Matches y Events
+
 **Objetivo:** Crear los modelos Freezed alineados con la API (§6 Agent_Mobile.md).
 **Acciones:**
 1. Crear `features/matches/data/models/event_type.dart` con el enum completo (19 tipos).
@@ -291,6 +305,7 @@
 ---
 
 ### T-015: Implementar domain layer de Matches
+
 **Objetivo:** Entidades puras y repositorio abstracto.
 **Acciones:**
 1. Crear `features/matches/domain/entities/match.dart` (entidad pura sin dependencias).
@@ -311,6 +326,7 @@
 ---
 
 ### T-016: Implementar data layer de Matches (datasources + repository)
+
 **Objetivo:** Conectar con la API y el WebSocket.
 **Acciones:**
 1. Crear `features/matches/data/datasources/match_remote_datasource.dart`:
@@ -331,6 +347,7 @@
 ## Fase 5 — Feature: Sala de Retransmisión (Live Match)
 
 ### T-017: Implementar pantalla de Retransmisión en Directo
+
 **Objetivo:** Crear la pantalla de espectador basada en `sala_restransmision_partido.png`.
 **Referencia visual:** `docs/images/sala_restransmision_partido.png`
 **Diseño a implementar:**
@@ -370,6 +387,7 @@
 ## Fase 6 — Feature: Pantalla de Anotación (Court View)
 
 ### T-018: Implementar pantalla de Anotación — Layout y Score Header
+
 **Objetivo:** Crear la estructura base de la pantalla de anotación basada en `anotation_screen.png`.
 **Referencia visual:** `docs/images/anotation_screen.png`
 **Diseño a implementar (parte superior):**
@@ -389,6 +407,7 @@
 ---
 
 ### T-019: Implementar pantalla de Anotación — Panel de Acciones
+
 **Objetivo:** Crear el grid de botones de acción con el flujo de 3 taps.
 **Referencia visual:** `docs/images/anotation_screen.png`
 **Diseño a implementar (parte central — grid de acciones):**
@@ -416,6 +435,7 @@
 ---
 
 ### T-020: Implementar pantalla de Anotación — Selector de Jugador
+
 **Objetivo:** Crear el carrusel de selección de jugador (roster en pista).
 **Referencia visual:** `docs/images/anotation_screen.png`
 **Diseño a implementar (parte inferior):**
@@ -441,6 +461,7 @@
 ---
 
 ### T-021: Implementar tab de Historial en Court View
+
 **Objetivo:** Crear la segunda tab "HISTORIAL" de la pantalla de anotación.
 **Acciones:**
 1. Reutilizar `play_by_play_feed.dart` de la pantalla de retransmisión (T-017).
@@ -455,6 +476,7 @@
 ## Fase 7 — Feature: Listado de Partidos
 
 ### T-022: Implementar pantalla de selección de partido (para anotar y para ver)
+
 **Objetivo:** Pantalla intermedia entre Home y Court View / Live que lista los partidos disponibles.
 **Acciones:**
 1. Crear `features/matches/presentation/pages/match_list_page.dart`:
@@ -472,6 +494,7 @@
 ## Fase 8 — Feature: Panel de Administración (CRUD Clubs, Equipos, Jugadores, Partidos)
 
 ### T-023: Implementar domain y data layer de Clubs
+
 **Objetivo:** Crear entidades, modelos, datasource y repositorio para la gestión de clubes.
 **Acciones:**
 1. Crear `features/clubs/domain/entities/club.dart`: Entidad `Club` con `id`, `name`, `logoUrl`, `city`, `country`, `foundedYear`, `createdAt`.
@@ -486,6 +509,7 @@
 ---
 
 ### T-024: Implementar domain y data layer de Teams
+
 **Objetivo:** Crear entidades, modelos, datasource y repositorio para la gestión de equipos.
 **Acciones:**
 1. Crear `features/teams/domain/entities/team.dart`: Entidad `Team` con `id`, `name`, `clubId`, `clubName`, `category`, `logoUrl`, `seasonId`, `createdAt`.
@@ -500,6 +524,7 @@
 ---
 
 ### T-025: Implementar domain y data layer de Players
+
 **Objetivo:** Crear entidades, modelos, datasource y repositorio para la gestión de jugadores.
 **Acciones:**
 1. Crear `features/players/domain/entities/player.dart`: Entidad `Player` con `id`, `firstName`, `lastName`, `jerseyNumber`, `position` (enum: PG, SG, SF, PF, C), `teamId`, `teamName`, `photoUrl`, `birthDate`, `height`, `weight`, `createdAt`.
@@ -514,6 +539,7 @@
 ---
 
 ### T-026: Implementar scaffold del Panel de Administración y tab Clubs
+
 **Objetivo:** Crear la pantalla principal del panel de administración con navegación por tabs y la pestaña de Clubs completa.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png`
 **Diseño a implementar:**
@@ -566,6 +592,7 @@
 ---
 
 ### T-027: Implementar formulario de creación/edición de Club
+
 **Objetivo:** Crear el formulario modal o pantalla para crear y editar clubs.
 **Acciones:**
 1. Crear `features/clubs/presentation/pages/club_form_page.dart`:
@@ -584,6 +611,7 @@
 ---
 
 ### T-028: Implementar tab Equipos en Panel de Administración
+
 **Objetivo:** Crear la pestaña de Equipos dentro del panel de administración con el mismo patrón visual que Clubs.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
 **Diseño a implementar:**
@@ -606,6 +634,7 @@
 ---
 
 ### T-029: Implementar tab Jugadores en Panel de Administración
+
 **Objetivo:** Crear la pestaña de Jugadores dentro del panel de administración con el mismo patrón visual.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
 **Diseño a implementar:**
@@ -628,6 +657,7 @@
 ---
 
 ### T-030: Implementar tab Partidos en Panel de Administración
+
 **Objetivo:** Crear la pestaña de Partidos dentro del panel de administración con CRUD para programar y gestionar partidos.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
 **Diseño a implementar:**
@@ -650,6 +680,7 @@
 ---
 
 ### T-031: Implementar feature Settings (perfil y preferencias)
+
 **Objetivo:** Pantalla de configuración del usuario.
 **Acciones:**
 1. Crear `features/settings/presentation/pages/settings_page.dart`:
@@ -666,6 +697,7 @@
 ## Fase 9 — Observabilidad y Polish
 
 ### T-032: Integrar Sentry y logging estructurado
+
 **Objetivo:** Configurar crash reporting y logging (§4 Agent_Mobile.md — Observabilidad).
 **Acciones:**
 1. Inicializar Sentry en `main.dart` con DSN desde `EnvConfig` (solo staging/prod).
@@ -677,6 +709,7 @@
 ---
 
 ### T-033: Implementar indicadores de conexión y sincronización globales
+
 **Objetivo:** Widgets globales que muestran el estado del sistema.
 **Acciones:**
 1. Crear `lib/core/widgets/connection_indicator.dart` — punto verde/amarillo/rojo en la barra superior de pantallas de partido.
@@ -690,6 +723,7 @@
 ## Fase 10 — Testing y CI
 
 ### T-034: Implementar unit tests del core y domain
+
 **Objetivo:** Cobertura ≥ 80% en domain + core (§14 Agent_Mobile.md).
 **Acciones:**
 1. Tests para `AuthInterceptor` (inyección de token, refresh on 401, race condition).
@@ -703,6 +737,7 @@
 ---
 
 ### T-035: Implementar widget tests de pantallas críticas
+
 **Objetivo:** Validar la UI del Court View, Login y Panel de Administración.
 **Acciones:**
 1. Widget test de `LoginPage`: renderiza campos, valida inputs vacíos, muestra error en credenciales inválidas.
@@ -715,6 +750,7 @@
 ---
 
 ### T-036: Configurar pipeline CI (GitHub Actions)
+
 **Objetivo:** Pipeline automatizado de calidad (§15 Agent_Mobile.md).
 **Acciones:**
 1. Crear `.github/workflows/ci.yml`:
@@ -730,6 +766,7 @@
 ## Fase 11 — State Restoration y Final Polish
 
 ### T-037: Implementar state restoration de partido en progreso
+
 **Objetivo:** Persistir estado del partido para recuperación tras kill del SO (§17 Agent_Mobile.md).
 **Acciones:**
 1. En `annotation_state_provider.dart`: cada vez que se registra un evento o cambia el período/reloj, persistir snapshot en `match_cache` (Drift).
