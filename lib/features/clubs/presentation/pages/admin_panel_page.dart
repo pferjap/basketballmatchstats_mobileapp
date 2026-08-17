@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
+import '../../../players/presentation/pages/players_tab.dart';
 import '../../../teams/presentation/pages/teams_tab.dart';
 import 'clubs_tab.dart';
 
@@ -64,7 +65,7 @@ class AdminPanelPage extends StatelessWidget {
           children: <Widget>[
             ClubsTab(),
             TeamsTab(),
-            _PendingTab(label: 'Jugadores'),
+            PlayersTab(),
             _PendingTab(label: 'Partidos'),
           ],
         ),
