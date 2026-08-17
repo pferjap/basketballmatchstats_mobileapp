@@ -8,10 +8,7 @@ import 'player_match_stats_model.dart';
 /// The endpoint returns `{ matchScore: {...}, playerStats: [...] }`; the score
 /// fields are also accepted at the top level for resilience.
 class MatchStatisticsModel {
-  const MatchStatisticsModel({
-    required this.score,
-    required this.playerStats,
-  });
+  const MatchStatisticsModel({required this.score, required this.playerStats});
 
   factory MatchStatisticsModel.fromJson(Map<String, dynamic> json) {
     final scoreJson = json['matchScore'] ?? json['score'] ?? json;
@@ -21,9 +18,11 @@ class MatchStatisticsModel {
         (scoreJson as Map).cast<String, dynamic>(),
       ),
       playerStats: (players as List)
-          .map((dynamic e) => PlayerMatchStatsModel.fromJson(
-                (e as Map).cast<String, dynamic>(),
-              ))
+          .map(
+            (dynamic e) => PlayerMatchStatsModel.fromJson(
+              (e as Map).cast<String, dynamic>(),
+            ),
+          )
           .toList(growable: false),
     );
   }
@@ -32,8 +31,7 @@ class MatchStatisticsModel {
   final List<PlayerMatchStatsModel> playerStats;
 
   MatchStatistics toEntity() => MatchStatistics(
-        score: score.toEntity(),
-        playerStats:
-            playerStats.map((e) => e.toEntity()).toList(growable: false),
-      );
+    score: score.toEntity(),
+    playerStats: playerStats.map((e) => e.toEntity()).toList(growable: false),
+  );
 }

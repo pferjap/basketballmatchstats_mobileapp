@@ -22,8 +22,8 @@ class EventRepositoryImpl implements EventRepository {
     required this.local,
     String Function()? idGenerator,
     DateTime Function()? clock,
-  })  : _idGenerator = idGenerator ?? (() => const Uuid().v4()),
-        _clock = clock ?? DateTime.now;
+  }) : _idGenerator = idGenerator ?? (() => const Uuid().v4()),
+       _clock = clock ?? DateTime.now;
 
   final MatchRemoteDataSource remote;
   final MatchLocalDataSource local;

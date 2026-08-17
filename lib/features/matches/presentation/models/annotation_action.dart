@@ -56,11 +56,11 @@ class AnnotationAction {
 
   /// Accent color for the icon/label, derived from [category].
   Color get color => switch (category) {
-        AnnotationCategory.shot =>
-          points != null ? AppColors.success : AppColors.textPrimary,
-        AnnotationCategory.action => AppColors.primary,
-        AnnotationCategory.foul => AppColors.error,
-      };
+    AnnotationCategory.shot =>
+      points != null ? AppColors.success : AppColors.textPrimary,
+    AnnotationCategory.action => AppColors.primary,
+    AnnotationCategory.foul => AppColors.error,
+  };
 
   /// Whether this action counts as a team foul (bumps the foul indicator).
   bool get isTeamFoul =>

@@ -79,13 +79,13 @@ class MatchListState {
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(matches),
-        isLoading,
-        isLoadingMore,
-        isRefreshing,
-        hasMore,
-        errorMessage,
-      );
+    Object.hashAll(matches),
+    isLoading,
+    isLoadingMore,
+    isRefreshing,
+    hasMore,
+    errorMessage,
+  );
 }
 
 /// Loads and paginates the match list for a given [MatchListMode], applying the
@@ -196,15 +196,17 @@ class MatchListController
 
   /// Keeps only the matches relevant to the current mode.
   List<Match> _filter(List<Match> matches) {
-    return matches.where((m) {
-      switch (arg) {
-        case MatchListMode.annotate:
-          return m.status == MatchStatus.scheduled ||
-              m.status == MatchStatus.inProgress;
-        case MatchListMode.spectate:
-          return m.status == MatchStatus.inProgress;
-      }
-    }).toList(growable: false);
+    return matches
+        .where((m) {
+          switch (arg) {
+            case MatchListMode.annotate:
+              return m.status == MatchStatus.scheduled ||
+                  m.status == MatchStatus.inProgress;
+            case MatchListMode.spectate:
+              return m.status == MatchStatus.inProgress;
+          }
+        })
+        .toList(growable: false);
   }
 
   List<Match> _mergeById(List<Match> existing, List<Match> incoming) {
@@ -225,5 +227,5 @@ class MatchListController
 /// Match-list state for a given selection mode.
 final matchListControllerProvider = NotifierProvider.autoDispose
     .family<MatchListController, MatchListState, MatchListMode>(
-  MatchListController.new,
-);
+      MatchListController.new,
+    );

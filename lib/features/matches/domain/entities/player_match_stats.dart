@@ -43,16 +43,16 @@ class PlayerMatchStats {
 
   @override
   int get hashCode => Object.hash(
-        playerId,
-        points,
-        rebounds,
-        assists,
-        steals,
-        blocks,
-        turnovers,
-        fouls,
-        minutes,
-      );
+    playerId,
+    points,
+    rebounds,
+    assists,
+    steals,
+    blocks,
+    turnovers,
+    fouls,
+    minutes,
+  );
 
   @override
   String toString() =>

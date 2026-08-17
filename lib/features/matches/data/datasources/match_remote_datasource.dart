@@ -25,16 +25,15 @@ class MatchRemoteDataSource {
   Future<PagedModels<MatchModel>> getMatches({int? page, int? limit}) async {
     final body = await _get(
       '/matches',
-      queryParameters: <String, dynamic>{
-        'page': ?page,
-        'limit': ?limit,
-      },
+      queryParameters: <String, dynamic>{'page': ?page, 'limit': ?limit},
     );
     final items = ApiResponseParser.data(
       body,
       (Object? data) => (data as List? ?? const <dynamic>[])
-          .map((dynamic e) =>
-              MatchModel.fromJson((e as Map).cast<String, dynamic>()))
+          .map(
+            (dynamic e) =>
+                MatchModel.fromJson((e as Map).cast<String, dynamic>()),
+          )
           .toList(growable: false),
     );
     return (items: items, meta: ApiResponseParser.meta(body));
@@ -48,6 +47,35 @@ class MatchRemoteDataSource {
       (Object? data) =>
           MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
     );
+  }
+
+  /// `POST /matches` — schedules a new match (admin panel, Plan.md T-030).
+  Future<MatchModel> createMatch(Map<String, dynamic> payload) async {
+    final body = await _post('/matches', data: payload);
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// `PUT /matches/:id` — updates a match's scheduling details.
+  Future<MatchModel> updateMatch(
+    String matchId,
+    Map<String, dynamic> payload,
+  ) async {
+    final body = await _put('/matches/$matchId', data: payload);
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// `DELETE /matches/:id` — removes a match.
+  Future<void> deleteMatch(String matchId) async {
+    final body = await _delete('/matches/$matchId');
+    ApiResponseParser.data(body, (_) => null);
   }
 
   /// `POST /matches/:id/start` — starts a scheduled match.
@@ -89,8 +117,10 @@ class MatchRemoteDataSource {
     final items = ApiResponseParser.data(
       body,
       (Object? data) => (data as List? ?? const <dynamic>[])
-          .map((dynamic e) =>
-              EventModel.fromJson((e as Map).cast<String, dynamic>()))
+          .map(
+            (dynamic e) =>
+                EventModel.fromJson((e as Map).cast<String, dynamic>()),
+          )
           .toList(growable: false),
     );
     return (items: items, meta: ApiResponseParser.meta(body));
@@ -139,6 +169,18 @@ class MatchRemoteDataSource {
   }) async {
     try {
       final response = await dio.post<Map<String, dynamic>>(path, data: data);
+      return response.data ?? const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _mapDioException(error);
+    }
+  }
+
+  Future<Map<String, dynamic>> _put(
+    String path, {
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final response = await dio.put<Map<String, dynamic>>(path, data: data);
       return response.data ?? const <String, dynamic>{};
     } on DioException catch (error) {
       throw _mapDioException(error);

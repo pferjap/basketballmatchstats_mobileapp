@@ -42,6 +42,7 @@ class MatchModel {
     this.seasonId,
     this.startedAt,
     this.finishedAt,
+    this.venue,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
@@ -51,13 +52,13 @@ class MatchModel {
       id: json['id'] as String,
       homeTeamId: json['homeTeamId'] as String,
       awayTeamId: json['awayTeamId'] as String,
-      status:
-          const MatchStatusConverter().fromJson(json['status'] as String),
+      status: const MatchStatusConverter().fromJson(json['status'] as String),
       scheduledAt: DateTime.parse(json['scheduledAt'] as String),
       competitionId: json['competitionId'] as String?,
       seasonId: json['seasonId'] as String?,
       startedAt: startedAt == null ? null : DateTime.parse(startedAt),
       finishedAt: finishedAt == null ? null : DateTime.parse(finishedAt),
+      venue: json['venue'] as String?,
     );
   }
 
@@ -70,28 +71,31 @@ class MatchModel {
   final String? seasonId;
   final DateTime? startedAt;
   final DateTime? finishedAt;
+  final String? venue;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'homeTeamId': homeTeamId,
-        'awayTeamId': awayTeamId,
-        'status': const MatchStatusConverter().toJson(status),
-        'scheduledAt': scheduledAt.toIso8601String(),
-        'competitionId': competitionId,
-        'seasonId': seasonId,
-        'startedAt': startedAt?.toIso8601String(),
-        'finishedAt': finishedAt?.toIso8601String(),
-      };
+    'id': id,
+    'homeTeamId': homeTeamId,
+    'awayTeamId': awayTeamId,
+    'status': const MatchStatusConverter().toJson(status),
+    'scheduledAt': scheduledAt.toIso8601String(),
+    'competitionId': competitionId,
+    'seasonId': seasonId,
+    'startedAt': startedAt?.toIso8601String(),
+    'finishedAt': finishedAt?.toIso8601String(),
+    'venue': venue,
+  };
 
   Match toEntity() => Match(
-        id: id,
-        homeTeamId: homeTeamId,
-        awayTeamId: awayTeamId,
-        status: status,
-        scheduledAt: scheduledAt,
-        competitionId: competitionId,
-        seasonId: seasonId,
-        startedAt: startedAt,
-        finishedAt: finishedAt,
-      );
+    id: id,
+    homeTeamId: homeTeamId,
+    awayTeamId: awayTeamId,
+    status: status,
+    scheduledAt: scheduledAt,
+    competitionId: competitionId,
+    seasonId: seasonId,
+    startedAt: startedAt,
+    finishedAt: finishedAt,
+    venue: venue,
+  );
 }

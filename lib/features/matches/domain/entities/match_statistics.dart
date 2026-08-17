@@ -5,10 +5,7 @@ import 'player_match_stats.dart';
 ///
 /// Returned by `GET /matches/:id/statistics` (Agent_Mobile §7.1).
 class MatchStatistics {
-  const MatchStatistics({
-    required this.score,
-    required this.playerStats,
-  });
+  const MatchStatistics({required this.score, required this.playerStats});
 
   final MatchScore score;
   final List<PlayerMatchStats> playerStats;

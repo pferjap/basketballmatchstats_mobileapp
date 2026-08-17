@@ -6,11 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 /// (orange) up to [fouls], muted (grey) for the remaining slots up to [total]
 /// (Plan.md T-018). The bonus threshold is [total] (FIBA: 5 team fouls).
 class FoulIndicator extends StatelessWidget {
-  const FoulIndicator({
-    required this.fouls,
-    this.total = 5,
-    super.key,
-  });
+  const FoulIndicator({required this.fouls, this.total = 5, super.key});
 
   final int fouls;
   final int total;

@@ -192,7 +192,9 @@ class EventFeedItem extends StatelessWidget {
           ),
           _TimelineIcon(visual: visual, isFirst: isFirst, isLast: isLast),
           const SizedBox(width: kSpacingM),
-          Expanded(child: _EventBody(event: event, title: visual.title)),
+          Expanded(
+            child: _EventBody(event: event, title: visual.title),
+          ),
           const SizedBox(width: kSpacingS),
           _PartialScore(
             event: event,
@@ -322,11 +324,7 @@ class _SubstitutionDetail extends StatelessWidget {
   }
 
   String _sideText(String verb, int? number, String? name) {
-    final parts = <String>[
-      verb,
-      if (number != null) '#$number',
-      ?name,
-    ];
+    final parts = <String>[verb, if (number != null) '#$number', ?name];
     return parts.join(' ');
   }
 }
@@ -359,10 +357,10 @@ class _PartialScore extends StatelessWidget {
     final teamLabel = home == away
         ? 'Empate'
         : homeScored
-            ? homeTeamName.toUpperCase()
-            : awayScored
-                ? awayTeamName.toUpperCase()
-                : '';
+        ? homeTeamName.toUpperCase()
+        : awayScored
+        ? awayTeamName.toUpperCase()
+        : '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -401,10 +399,7 @@ class _PartialScore extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           teamLabel,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
       ],
     );

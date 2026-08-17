@@ -138,10 +138,12 @@ class AnnotationState {
       baseHomeScore: baseHomeScore ?? this.baseHomeScore,
       baseAwayScore: baseAwayScore ?? this.baseAwayScore,
       events: events ?? this.events,
-      selectedAction:
-          clearSelection ? null : (selectedAction ?? this.selectedAction),
-      selectedPlayer:
-          clearSelection ? null : (selectedPlayer ?? this.selectedPlayer),
+      selectedAction: clearSelection
+          ? null
+          : (selectedAction ?? this.selectedAction),
+      selectedPlayer: clearSelection
+          ? null
+          : (selectedPlayer ?? this.selectedPlayer),
       currentStep: currentStep ?? this.currentStep,
       isRecording: isRecording ?? this.isRecording,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -177,8 +179,9 @@ class AnnotationController
     );
 
     try {
-      final stats =
-          await ref.read(matchRepositoryProvider).getMatchStatistics(arg);
+      final stats = await ref
+          .read(matchRepositoryProvider)
+          .getMatchStatistics(arg);
       state = state.copyWith(
         baseHomeScore: stats.score.homeTeamScore,
         baseAwayScore: stats.score.awayTeamScore,
@@ -288,10 +291,7 @@ class AnnotationController
       final serverEvent = await _events.recordEvent(arg, params);
       _replace(
         recorded.event.id,
-        recorded.copyWith(
-          event: serverEvent,
-          status: EventSyncStatus.synced,
-        ),
+        recorded.copyWith(event: serverEvent, status: EventSyncStatus.synced),
       );
     } catch (_) {
       _replace(
@@ -325,9 +325,8 @@ class AnnotationController
   Future<void> undoLast() async {
     final target =
         state.events.where((e) => e.status != EventSyncStatus.failed).isEmpty
-            ? null
-            : state.events
-                .firstWhere((e) => e.status != EventSyncStatus.failed);
+        ? null
+        : state.events.firstWhere((e) => e.status != EventSyncStatus.failed);
     if (target == null) return;
     try {
       await _events.undoLastEvent(arg);
@@ -338,9 +337,7 @@ class AnnotationController
         clearError: true,
       );
     } catch (_) {
-      state = state.copyWith(
-        errorMessage: 'No se pudo deshacer la acción.',
-      );
+      state = state.copyWith(errorMessage: 'No se pudo deshacer la acción.');
     }
   }
 
@@ -396,5 +393,5 @@ class AnnotationController
 /// Annotation flow state for a given match id.
 final annotationControllerProvider = NotifierProvider.autoDispose
     .family<AnnotationController, AnnotationState, String>(
-  AnnotationController.new,
-);
+      AnnotationController.new,
+    );

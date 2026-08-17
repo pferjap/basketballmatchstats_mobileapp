@@ -54,8 +54,7 @@ class MatchLivePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final info = args ?? const LiveMatchArgs();
     final state = ref.watch(liveMatchControllerProvider(matchId));
-    final controller =
-        ref.read(liveMatchControllerProvider(matchId).notifier);
+    final controller = ref.read(liveMatchControllerProvider(matchId).notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -112,7 +111,9 @@ class MatchLivePage extends ConsumerWidget {
             score: state.score,
           ),
           const Divider(color: AppColors.divider, height: 1),
-          Expanded(child: _FeedArea(state: state, info: info)),
+          Expanded(
+            child: _FeedArea(state: state, info: info),
+          ),
           _LoadEarlierButton(
             isLoading: state.isLoadingEarlier,
             enabled: state.hasMoreEarlier && !state.isLoadingEarlier,

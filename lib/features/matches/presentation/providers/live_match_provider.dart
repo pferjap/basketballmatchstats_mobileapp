@@ -78,14 +78,14 @@ class LiveMatchState {
 
   @override
   int get hashCode => Object.hash(
-        score,
-        Object.hashAll(events),
-        connection,
-        isLoading,
-        isLoadingEarlier,
-        hasMoreEarlier,
-        errorMessage,
-      );
+    score,
+    Object.hashAll(events),
+    connection,
+    isLoading,
+    isLoadingEarlier,
+    hasMoreEarlier,
+    errorMessage,
+  );
 }
 
 /// Drives the live-match screen: subscribes to the WebSocket read channel on
@@ -146,8 +146,7 @@ class LiveMatchController
       _setState(
         state.copyWith(
           isLoading: false,
-          errorMessage:
-              'No se pudo cargar el partido. Comprueba tu conexión.',
+          errorMessage: 'No se pudo cargar el partido. Comprueba tu conexión.',
         ),
       );
     }
@@ -203,8 +202,10 @@ class LiveMatchController
   Future<void> _reconcile() async {
     final matchId = arg;
     try {
-      final page =
-          await _repository.getMatchEvents(matchId, since: _lastEventAt);
+      final page = await _repository.getMatchEvents(
+        matchId,
+        since: _lastEventAt,
+      );
       final statistics = await _repository.getMatchStatistics(matchId);
       final merged = _mergeEvents(page.items, state.events);
       if (merged.isNotEmpty) {
@@ -217,10 +218,7 @@ class LiveMatchController
   }
 
   /// Merges two event lists, de-duplicating by id and keeping newest first.
-  List<MatchEvent> _mergeEvents(
-    List<MatchEvent> a,
-    List<MatchEvent> b,
-  ) {
+  List<MatchEvent> _mergeEvents(List<MatchEvent> a, List<MatchEvent> b) {
     final byId = <String, MatchEvent>{};
     for (final event in <MatchEvent>[...a, ...b]) {
       byId[event.id] = event;
@@ -254,5 +252,5 @@ class LiveMatchController
 /// Live-match state for a given match id.
 final liveMatchControllerProvider = NotifierProvider.autoDispose
     .family<LiveMatchController, LiveMatchState, String>(
-  LiveMatchController.new,
-);
+      LiveMatchController.new,
+    );

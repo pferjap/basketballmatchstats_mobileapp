@@ -19,6 +19,7 @@ class Match {
     this.seasonId,
     this.startedAt,
     this.finishedAt,
+    this.venue,
   });
 
   final String id;
@@ -35,6 +36,9 @@ class Match {
   /// Set once the match transitions to [MatchStatus.finished].
   final DateTime? finishedAt;
 
+  /// Court or arena where the match is played, when recorded.
+  final String? venue;
+
   Match copyWith({
     String? id,
     String? homeTeamId,
@@ -45,6 +49,7 @@ class Match {
     String? seasonId,
     DateTime? startedAt,
     DateTime? finishedAt,
+    String? venue,
   }) {
     return Match(
       id: id ?? this.id,
@@ -56,6 +61,7 @@ class Match {
       seasonId: seasonId ?? this.seasonId,
       startedAt: startedAt ?? this.startedAt,
       finishedAt: finishedAt ?? this.finishedAt,
+      venue: venue ?? this.venue,
     );
   }
 
@@ -71,20 +77,22 @@ class Match {
           other.competitionId == competitionId &&
           other.seasonId == seasonId &&
           other.startedAt == startedAt &&
-          other.finishedAt == finishedAt;
+          other.finishedAt == finishedAt &&
+          other.venue == venue;
 
   @override
   int get hashCode => Object.hash(
-        id,
-        homeTeamId,
-        awayTeamId,
-        status,
-        scheduledAt,
-        competitionId,
-        seasonId,
-        startedAt,
-        finishedAt,
-      );
+    id,
+    homeTeamId,
+    awayTeamId,
+    status,
+    scheduledAt,
+    competitionId,
+    seasonId,
+    startedAt,
+    finishedAt,
+    venue,
+  );
 
   @override
   String toString() =>

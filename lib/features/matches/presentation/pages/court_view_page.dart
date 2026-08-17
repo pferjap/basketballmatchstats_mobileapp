@@ -34,8 +34,10 @@ class CourtViewPage extends ConsumerStatefulWidget {
 
 class _CourtViewPageState extends ConsumerState<CourtViewPage>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabController =
-      TabController(length: 2, vsync: this);
+  late final TabController _tabController = TabController(
+    length: 2,
+    vsync: this,
+  );
   late final CourtViewArgs _args = widget.args ?? CourtViewArgs.demo();
 
   @override
@@ -55,15 +57,17 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
   }
 
   CourtTeam get _annotatingTeam {
-    final id =
-        ref.read(annotationControllerProvider(widget.matchId)).annotatingTeamId;
+    final id = ref
+        .read(annotationControllerProvider(widget.matchId))
+        .annotatingTeamId;
     return id == _args.away.id ? _args.away : _args.home;
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller =
-        ref.read(annotationControllerProvider(widget.matchId).notifier);
+    final controller = ref.read(
+      annotationControllerProvider(widget.matchId).notifier,
+    );
     final state = ref.watch(annotationControllerProvider(widget.matchId));
 
     ref.listen<String?>(
@@ -166,8 +170,7 @@ class _TabHeader extends StatelessWidget {
         indicatorColor: AppColors.primary,
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
-        labelStyle:
-            const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         tabs: const <Widget>[
           Tab(
             icon: Icon(Icons.bolt),
@@ -193,8 +196,7 @@ class _AnnotateTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller =
-        ref.read(annotationControllerProvider(matchId).notifier);
+    final controller = ref.read(annotationControllerProvider(matchId).notifier);
     final state = ref.watch(annotationControllerProvider(matchId));
 
     return Column(
@@ -225,8 +227,7 @@ class _DetailsPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller =
-        ref.read(annotationControllerProvider(matchId).notifier);
+    final controller = ref.read(annotationControllerProvider(matchId).notifier);
     final state = ref.watch(annotationControllerProvider(matchId));
     final action = state.selectedAction;
     final player = state.selectedPlayer;

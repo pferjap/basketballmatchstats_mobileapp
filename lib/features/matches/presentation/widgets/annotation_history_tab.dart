@@ -187,12 +187,18 @@ class _StatusIndicator extends StatelessWidget {
       case EventSyncStatus.pending:
         return const Tooltip(
           message: 'Pendiente de sincronizar',
-          child: Icon(Icons.cloud_upload_outlined,
-              color: AppColors.textSecondary, size: 18),
+          child: Icon(
+            Icons.cloud_upload_outlined,
+            color: AppColors.textSecondary,
+            size: 18,
+          ),
         );
       case EventSyncStatus.synced:
-        return const Icon(Icons.check_circle_outline,
-            color: AppColors.success, size: 18);
+        return const Icon(
+          Icons.check_circle_outline,
+          color: AppColors.success,
+          size: 18,
+        );
       case EventSyncStatus.failed:
         return IconButton(
           onPressed: () => onRetry(recorded),

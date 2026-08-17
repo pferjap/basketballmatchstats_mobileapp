@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/ui_constants.dart';
+import '../../../matches/presentation/pages/matches_tab.dart';
 import '../../../players/presentation/pages/players_tab.dart';
 import '../../../teams/presentation/pages/teams_tab.dart';
 import 'clubs_tab.dart';
@@ -66,38 +66,9 @@ class AdminPanelPage extends StatelessWidget {
             ClubsTab(),
             TeamsTab(),
             PlayersTab(),
-            _PendingTab(label: 'Partidos'),
+            MatchesTab(),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Stand-in for the tabs delivered by the following tasks (T-028 to T-030).
-class _PendingTab extends StatelessWidget {
-  const _PendingTab({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(
-            Icons.construction_outlined,
-            size: 48,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(height: kSpacingM),
-          Text(
-            'La gestión de $label estará disponible en breve.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-        ],
       ),
     );
   }

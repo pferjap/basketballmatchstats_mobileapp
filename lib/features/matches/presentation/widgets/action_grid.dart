@@ -21,10 +21,10 @@ class ActionGrid extends StatelessWidget {
 
   static const Map<AnnotationCategory, String> _sectionTitles =
       <AnnotationCategory, String>{
-    AnnotationCategory.shot: 'TIRO',
-    AnnotationCategory.action: 'ACCIONES',
-    AnnotationCategory.foul: 'FALTAS',
-  };
+        AnnotationCategory.shot: 'TIRO',
+        AnnotationCategory.action: 'ACCIONES',
+        AnnotationCategory.foul: 'FALTAS',
+      };
 
   @override
   Widget build(BuildContext context) {

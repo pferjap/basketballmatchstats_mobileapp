@@ -36,8 +36,8 @@ class ActionButton extends StatelessWidget {
     final border = selected
         ? color
         : dangerBackground
-            ? AppColors.error.withValues(alpha: 0.4)
-            : AppColors.divider;
+        ? AppColors.error.withValues(alpha: 0.4)
+        : AppColors.divider;
 
     return Semantics(
       button: true,

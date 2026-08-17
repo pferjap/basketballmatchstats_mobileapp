@@ -29,15 +29,15 @@ class EventModel {
       matchId: json['matchId'] as String,
       teamId: json['teamId'] as String,
       playerId: json['playerId'] as String?,
-      eventType:
-          const EventTypeConverter().fromJson(json['eventType'] as String),
+      eventType: const EventTypeConverter().fromJson(
+        json['eventType'] as String,
+      ),
       period: (json['period'] as num).toInt(),
       gameClock: json['gameClock'] as String,
       coordinates: coordinates is Map
           ? CoordinatesModel.fromJson(coordinates.cast<String, dynamic>())
           : null,
-      metadata:
-          metadata is Map ? metadata.cast<String, dynamic>() : null,
+      metadata: metadata is Map ? metadata.cast<String, dynamic>() : null,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
@@ -54,28 +54,28 @@ class EventModel {
   final DateTime createdAt;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'matchId': matchId,
-        'teamId': teamId,
-        'playerId': playerId,
-        'eventType': const EventTypeConverter().toJson(eventType),
-        'period': period,
-        'gameClock': gameClock,
-        'coordinates': coordinates?.toJson(),
-        'metadata': metadata,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'matchId': matchId,
+    'teamId': teamId,
+    'playerId': playerId,
+    'eventType': const EventTypeConverter().toJson(eventType),
+    'period': period,
+    'gameClock': gameClock,
+    'coordinates': coordinates?.toJson(),
+    'metadata': metadata,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   MatchEvent toEntity() => MatchEvent(
-        id: id,
-        matchId: matchId,
-        teamId: teamId,
-        playerId: playerId,
-        eventType: eventType,
-        period: period,
-        gameClock: gameClock,
-        coordinates: coordinates?.toEntity(),
-        metadata: metadata,
-        createdAt: createdAt,
-      );
+    id: id,
+    matchId: matchId,
+    teamId: teamId,
+    playerId: playerId,
+    eventType: eventType,
+    period: period,
+    gameClock: gameClock,
+    coordinates: coordinates?.toEntity(),
+    metadata: metadata,
+    createdAt: createdAt,
+  );
 }

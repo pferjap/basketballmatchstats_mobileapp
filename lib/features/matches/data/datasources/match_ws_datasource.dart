@@ -22,18 +22,18 @@ class MatchWsDataSource {
 
   /// New events created for the joined match (`event.created`).
   Stream<MatchEvent> get onEventCreated => _wsManager.onEventCreated.map(
-        (payload) => EventModel.fromJson(_unwrap(payload)).toEntity(),
-      );
+    (payload) => EventModel.fromJson(_unwrap(payload)).toEntity(),
+  );
 
   /// Live score updates (`score.updated`).
   Stream<MatchScore> get onScoreUpdated => _wsManager.onScoreUpdated.map(
-        (payload) => MatchScoreModel.fromJson(_unwrap(payload)).toEntity(),
-      );
+    (payload) => MatchScoreModel.fromJson(_unwrap(payload)).toEntity(),
+  );
 
   /// Match state changes (`match.updated`).
   Stream<Match> get onMatchUpdated => _wsManager.onMatchUpdated.map(
-        (payload) => MatchModel.fromJson(_unwrap(payload)).toEntity(),
-      );
+    (payload) => MatchModel.fromJson(_unwrap(payload)).toEntity(),
+  );
 
   /// Opens the socket connection (idempotent).
   Future<void> connect() => _wsManager.connect();

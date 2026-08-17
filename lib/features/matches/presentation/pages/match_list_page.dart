@@ -53,9 +53,9 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
   }
 
   String get _title => switch (widget.mode) {
-        MatchListMode.annotate => 'Tomar anotaciones',
-        MatchListMode.spectate => 'Asistir a un partido',
-      };
+    MatchListMode.annotate => 'Tomar anotaciones',
+    MatchListMode.spectate => 'Asistir a un partido',
+  };
 
   void _openMatch(Match match) {
     switch (widget.mode) {
@@ -94,8 +94,9 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchListControllerProvider(widget.mode));
-    final controller =
-        ref.read(matchListControllerProvider(widget.mode).notifier);
+    final controller = ref.read(
+      matchListControllerProvider(widget.mode).notifier,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -192,10 +193,7 @@ class _Body extends StatelessWidget {
           );
         }
         final match = state.matches[index];
-        return MatchCard(
-          match: match,
-          onTap: () => onTapMatch(match),
-        );
+        return MatchCard(match: match, onTap: () => onTapMatch(match));
       },
     );
   }

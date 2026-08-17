@@ -26,18 +26,18 @@ class MatchScoreModel {
   final String gameClock;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'matchId': matchId,
-        'homeTeamScore': homeTeamScore,
-        'awayTeamScore': awayTeamScore,
-        'currentPeriod': currentPeriod,
-        'gameClock': gameClock,
-      };
+    'matchId': matchId,
+    'homeTeamScore': homeTeamScore,
+    'awayTeamScore': awayTeamScore,
+    'currentPeriod': currentPeriod,
+    'gameClock': gameClock,
+  };
 
   MatchScore toEntity() => MatchScore(
-        matchId: matchId,
-        homeTeamScore: homeTeamScore,
-        awayTeamScore: awayTeamScore,
-        currentPeriod: currentPeriod,
-        gameClock: gameClock,
-      );
+    matchId: matchId,
+    homeTeamScore: homeTeamScore,
+    awayTeamScore: awayTeamScore,
+    currentPeriod: currentPeriod,
+    gameClock: gameClock,
+  );
 }

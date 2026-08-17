@@ -58,16 +58,16 @@ class MatchEvent {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        matchId,
-        teamId,
-        playerId,
-        eventType,
-        period,
-        gameClock,
-        coordinates,
-        createdAt,
-      );
+    id,
+    matchId,
+    teamId,
+    playerId,
+    eventType,
+    period,
+    gameClock,
+    coordinates,
+    createdAt,
+  );
 
   @override
   String toString() =>

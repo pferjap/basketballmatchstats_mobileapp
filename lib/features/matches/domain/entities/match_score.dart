@@ -33,12 +33,12 @@ class MatchScore {
 
   @override
   int get hashCode => Object.hash(
-        matchId,
-        homeTeamScore,
-        awayTeamScore,
-        currentPeriod,
-        gameClock,
-      );
+    matchId,
+    homeTeamScore,
+    awayTeamScore,
+    currentPeriod,
+    gameClock,
+  );
 
   @override
   String toString() =>

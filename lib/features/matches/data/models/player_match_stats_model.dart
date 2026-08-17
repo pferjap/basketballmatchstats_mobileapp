@@ -38,26 +38,26 @@ class PlayerMatchStatsModel {
   final int minutes;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'playerId': playerId,
-        'points': points,
-        'rebounds': rebounds,
-        'assists': assists,
-        'steals': steals,
-        'blocks': blocks,
-        'turnovers': turnovers,
-        'fouls': fouls,
-        'minutes': minutes,
-      };
+    'playerId': playerId,
+    'points': points,
+    'rebounds': rebounds,
+    'assists': assists,
+    'steals': steals,
+    'blocks': blocks,
+    'turnovers': turnovers,
+    'fouls': fouls,
+    'minutes': minutes,
+  };
 
   PlayerMatchStats toEntity() => PlayerMatchStats(
-        playerId: playerId,
-        points: points,
-        rebounds: rebounds,
-        assists: assists,
-        steals: steals,
-        blocks: blocks,
-        turnovers: turnovers,
-        fouls: fouls,
-        minutes: minutes,
-      );
+    playerId: playerId,
+    points: points,
+    rebounds: rebounds,
+    assists: assists,
+    steals: steals,
+    blocks: blocks,
+    turnovers: turnovers,
+    fouls: fouls,
+    minutes: minutes,
+  );
 }

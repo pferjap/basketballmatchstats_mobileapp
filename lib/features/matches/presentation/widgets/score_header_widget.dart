@@ -133,10 +133,7 @@ class _TeamColumn extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-          ),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
         ),
       ],
     );
@@ -175,8 +172,8 @@ class _PeriodClock extends StatelessWidget {
     final periodLabel = period == null
         ? '--'
         : period <= 4
-            ? 'Q$period'
-            : 'OT${period - 4}';
+        ? 'Q$period'
+        : 'OT${period - 4}';
     return Text.rich(
       TextSpan(
         children: <TextSpan>[
@@ -225,8 +222,8 @@ class _PeriodDots extends StatelessWidget {
               color: i == activeIndex
                   ? AppColors.primary
                   : i < activeIndex
-                      ? AppColors.primary.withValues(alpha: 0.4)
-                      : AppColors.divider,
+                  ? AppColors.primary.withValues(alpha: 0.4)
+                  : AppColors.divider,
             ),
           ),
       ],

@@ -110,8 +110,9 @@ class _TeamBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final crest = Icon(Icons.shield, color: crestColor, size: 36);
     final label = Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
@@ -138,8 +139,9 @@ class _TeamBlock extends StatelessWidget {
     );
 
     return Row(
-      mainAxisAlignment:
-          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: alignEnd
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       children: alignEnd
           ? <Widget>[Flexible(child: label), const SizedBox(width: 8), crest]
           : <Widget>[crest, const SizedBox(width: 8), Flexible(child: label)],

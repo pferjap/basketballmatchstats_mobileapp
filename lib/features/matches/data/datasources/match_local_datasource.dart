@@ -49,7 +49,9 @@ class MatchLocalDataSource {
     DateTime? updatedAt,
   }) async {
     try {
-      await _db.into(_db.matchCache).insertOnConflictUpdate(
+      await _db
+          .into(_db.matchCache)
+          .insertOnConflictUpdate(
             MatchCacheCompanion.insert(
               matchId: matchId,
               data: data,
@@ -64,9 +66,9 @@ class MatchLocalDataSource {
   /// Returns the cached serialized state for [matchId], or `null` if absent.
   Future<String?> getCachedMatch(String matchId) async {
     try {
-      final row = await (_db.select(_db.matchCache)
-            ..where((MatchCache t) => t.matchId.equals(matchId)))
-          .getSingleOrNull();
+      final row = await (_db.select(
+        _db.matchCache,
+      )..where((MatchCache t) => t.matchId.equals(matchId))).getSingleOrNull();
       return row?.data;
     } catch (error) {
       throw CacheException('Failed to read cached match: $error');

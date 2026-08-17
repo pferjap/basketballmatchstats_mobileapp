@@ -11,11 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 /// [onTick] reports the current value (used to timestamp recorded events) and
 /// [initialSeconds] resets the clock (pass a period-derived key to restart).
 class GameClockWidget extends StatefulWidget {
-  const GameClockWidget({
-    required this.initialSeconds,
-    this.onTick,
-    super.key,
-  });
+  const GameClockWidget({required this.initialSeconds, this.onTick, super.key});
 
   final int initialSeconds;
   final ValueChanged<String>? onTick;

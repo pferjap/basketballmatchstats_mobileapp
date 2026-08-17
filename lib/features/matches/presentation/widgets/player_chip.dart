@@ -62,8 +62,9 @@ class PlayerChip extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color:
-                        selected ? AppColors.primary : AppColors.textSecondary,
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),

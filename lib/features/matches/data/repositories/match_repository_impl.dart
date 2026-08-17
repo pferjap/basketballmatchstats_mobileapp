@@ -15,10 +15,7 @@ import '../models/match_model.dart';
 
 /// Outcome of a WebSocket reconnection reconciliation (Agent_Mobile §7.3).
 class ReconcileResult {
-  const ReconcileResult({
-    required this.missedEvents,
-    required this.statistics,
-  });
+  const ReconcileResult({required this.missedEvents, required this.statistics});
 
   /// Events created while the socket was disconnected.
   final List<MatchEvent> missedEvents;
@@ -56,10 +53,7 @@ class MatchRepositoryImpl implements MatchRepository {
   @override
   Future<Match> getMatch(String matchId) async {
     final model = await remote.getMatch(matchId);
-    await local.cacheMatch(
-      matchId: matchId,
-      data: jsonEncode(model.toJson()),
-    );
+    await local.cacheMatch(matchId: matchId, data: jsonEncode(model.toJson()));
     return model.toEntity();
   }
 
@@ -68,6 +62,37 @@ class MatchRepositoryImpl implements MatchRepository {
     final model = await remote.startMatch(matchId);
     return model.toEntity();
   }
+
+  @override
+  Future<Match> createMatch(CreateMatchParams params) async {
+    final model = await remote.createMatch(<String, dynamic>{
+      'homeTeamId': params.homeTeamId,
+      'awayTeamId': params.awayTeamId,
+      'scheduledAt': params.scheduledAt.toUtc().toIso8601String(),
+      'competitionId': ?params.competitionId,
+      'seasonId': ?params.seasonId,
+      'venue': ?params.venue,
+    });
+    return model.toEntity();
+  }
+
+  @override
+  Future<Match> updateMatch(String matchId, UpdateMatchParams params) async {
+    // Only non-null fields travel, so an omitted field leaves the stored value
+    // untouched rather than being cleared.
+    final model = await remote.updateMatch(matchId, <String, dynamic>{
+      'homeTeamId': ?params.homeTeamId,
+      'awayTeamId': ?params.awayTeamId,
+      'scheduledAt': ?params.scheduledAt?.toUtc().toIso8601String(),
+      'competitionId': ?params.competitionId,
+      'seasonId': ?params.seasonId,
+      'venue': ?params.venue,
+    });
+    return model.toEntity();
+  }
+
+  @override
+  Future<void> deleteMatch(String matchId) => remote.deleteMatch(matchId);
 
   @override
   Future<MatchStatistics> getMatchStatistics(String matchId) async {
@@ -127,9 +152,6 @@ class MatchRepositoryImpl implements MatchRepository {
   Future<ReconcileResult> reconcile(String matchId, {DateTime? since}) async {
     final events = await getMatchEvents(matchId, since: since);
     final statistics = await getMatchStatistics(matchId);
-    return ReconcileResult(
-      missedEvents: events.items,
-      statistics: statistics,
-    );
+    return ReconcileResult(missedEvents: events.items, statistics: statistics);
   }
 }
