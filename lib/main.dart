@@ -10,6 +10,7 @@ import 'core/config/environment.dart';
 /// Use `main_dev.dart`, `main_staging.dart` or `main_prod.dart` to target a
 /// specific environment explicitly.
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.init(Environment.dev);
   runApp(const ProviderScope(child: HoopAnalyticsApp()));
 }

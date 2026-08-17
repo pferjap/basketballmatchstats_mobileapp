@@ -12,8 +12,16 @@ val newBuildDir: Directory =
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    // Only redirect build output for subprojects on the same Windows drive root.
+    // Plugin subprojects from the Pub cache may reside on a different drive
+    // (e.g. C:\) than the project (D:\); Gradle cannot compute relative paths
+    // across drive boundaries and fails with "different roots".
+    val subRoot = project.projectDir.toPath().root
+    val rootRoot = rootProject.projectDir.toPath().root
+    if (subRoot == rootRoot) {
+        val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+        project.layout.buildDirectory.value(newSubprojectBuildDir)
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")

@@ -7,6 +7,7 @@ import 'core/config/environment.dart';
 
 /// Production entry point.
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.init(Environment.prod);
   runApp(const ProviderScope(child: HoopAnalyticsApp()));
 }

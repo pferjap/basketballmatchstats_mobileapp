@@ -7,6 +7,7 @@ import 'core/config/environment.dart';
 
 /// Staging entry point.
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.init(Environment.staging);
   runApp(const ProviderScope(child: HoopAnalyticsApp()));
 }
