@@ -694,76 +694,86 @@
 
 ---
 
-## Fase 9 — Feature: Registro de Usuarios y Aprobación
+## Fase 9 — Feature: Registro de Usuarios y Gestión de Privilegios
 
-> **Dependencia de backend (confirmar antes de empezar T-032).** `Agent_api.md` §5
-> sitúa el registro dentro del módulo `auth`, pero no documenta ni las rutas
-> concretas ni el concepto de "usuario pendiente de aprobación". Esta fase asume:
-> `POST /auth/register`, `GET /users?status=PENDING` (paginado),
-> `POST /users/:id/approve` y `POST /users/:id/reject`. Si el backend expone otra
-> forma, ajustar T-032 antes de construir la UI.
+> **Dependencia a confirmar antes de empezar (bloquea T-033).** La instrucción de
+> origen remite a "la fase 2 de Agent_api" para los campos del registro, pero ese
+> documento **no está en el repositorio**: `docs/agents/api/Agent_api.md` no está
+> dividido en fases. Los campos definidos abajo se han derivado de la entidad
+> `User` del propio proyecto (`id`, `email`, `name`, `role`, `clubId`,
+> `avatarUrl`) y de los roles de `Agent_api.md` §9. **Contrastar con el documento
+> real antes de implementar la pantalla.**
 >
-> **Regla de seguridad:** el rol que el usuario elige en el registro es una
-> *solicitud*, no una asignación. El backend nunca debe aceptar `SUPER_ADMIN` ni
-> `CLUB_ADMIN` desde el registro público, y el rol efectivo se fija al aprobar
-> la cuenta (Agent_Mobile.md §13, Agent_api.md §9).
+> **Endpoints asumidos** (tampoco documentados en `Agent_api.md`, que solo cita
+> "Registro" dentro del módulo `auth` en §5): `POST /auth/register`,
+> `GET /users` (paginado, ordenable por `createdAt` descendente) y
+> `PUT /users/:id/role`. Ajustar T-032 si el backend expone otra forma.
+>
+> **Regla de seguridad (innegociable).** El cliente **nunca** envía un rol en el
+> registro: el backend asigna `VIEWER` siempre. La elevación de privilegios va
+> por un endpoint distinto, restringido a `SUPER_ADMIN` y validado en servidor.
+> Ocultar opciones en la UI es defensa en profundidad, no el control de acceso
+> real (Agent_Mobile.md §13, Agent_api.md §9).
 
-### T-032: Implementar domain y data layer de Registro y Aprobación
+### T-032: Implementar domain y data layer de Registro y Gestión de Usuarios
 
 **Objetivo:** Crear las entidades, contratos y llamadas REST que sostienen el alta
-de usuarios y su aprobación por parte de un administrador.
+de usuarios y el cambio de rol por parte del superadministrador.
 **Acciones:**
-1. Añadir a `features/auth/domain/entities/user.dart` el enum
-   `UserStatus { pending, active, rejected }` y el campo `status`, más
-   `createdAt` para poder ordenar la cola de pendientes por antigüedad.
-2. Crear `features/auth/domain/repositories/auth_repository.dart` → añadir
-   `register(RegisterParams)`, con `RegisterParams`:
-   `name`, `email`, `password`, `clubId`, `requestedRole`.
-3. Crear use case `RegisterUseCase`.
+1. Añadir el campo `createdAt` a `features/auth/domain/entities/user.dart` y a
+   `user_model.dart`, necesario para ordenar el listado por antigüedad.
+2. Añadir `register(RegisterParams)` a
+   `features/auth/domain/repositories/auth_repository.dart`, con
+   `RegisterParams`: `name`, `email`, `password` y `clubId` opcional.
+   **No lleva campo de rol** — lo fija el backend.
+3. Crear el use case `RegisterUseCase`.
 4. Ampliar `features/auth/data/datasources/auth_remote_datasource.dart` con
-   `POST /auth/register` y ampliar `user_model.dart` con el mapeo de `status`
-   (`PENDING` | `ACTIVE` | `REJECTED`) siguiendo el patrón de
-   `MatchStatusConverter`.
+   `POST /auth/register`.
 5. Crear la feature `features/users/` (espeja el módulo `users/` del backend;
-   añade una carpeta que no está en Agent_Mobile.md §5, anotarlo al implementar):
-   - `domain/entities/pending_user.dart`: `id`, `name`, `email`, `requestedRole`,
-     `clubId`, `clubName`, `status`, `createdAt`.
-   - `domain/repositories/user_approval_repository.dart`:
-     `getPendingUsers(page, limit, {search})`, `approveUser(userId, {UserRole role})`,
-     `rejectUser(userId, {String? reason})`.
-   - Use cases: `GetPendingUsersUseCase`, `ApproveUserUseCase`, `RejectUserUseCase`.
-   - `data/models/pending_user_model.dart`, `data/datasources/user_approval_remote_datasource.dart`,
-     `data/repositories/user_approval_repository_impl.dart`.
-**Resultado:** Capa de dominio y datos del alta y la aprobación, testeable y sin
-dependencias de UI.
+   añade una carpeta que no figura en Agent_Mobile.md §5, anotarlo al
+   implementar):
+   - `domain/entities/app_user.dart`: `id`, `name`, `email`, `role`, `clubId`,
+     `clubName`, `avatarUrl`, `createdAt`.
+   - `domain/repositories/user_repository.dart`:
+     `getUsers(page, limit, {search})` — ordenado por `createdAt` descendente —
+     y `updateUserRole(userId, UserRole role)`.
+   - Use cases: `GetUsersUseCase`, `UpdateUserRoleUseCase`.
+   - `data/models/app_user_model.dart` (reutiliza el conversor de `UserRole` ya
+     existente en la feature auth), `data/datasources/user_remote_datasource.dart`
+     y `data/repositories/user_repository_impl.dart`.
+**Resultado:** Capa de dominio y datos del alta y del cambio de rol, testeable y
+sin dependencias de UI.
 
 ---
 
 ### T-033: Añadir enlace "Regístrate" al Login e implementar la pantalla de Registro
 
-**Objetivo:** Permitir que un usuario nuevo solicite una cuenta desde el login.
+**Objetivo:** Permitir que un usuario nuevo cree su cuenta desde el login. La
+cuenta nace siempre con rol `VIEWER`.
 **Referencia visual:** `docs/images/login_screen.png` (misma paleta y estilo de campos)
 **Diseño a implementar:**
 - **En `login_page.dart`:** la fila que hoy contiene "¿Olvidaste tu contraseña?"
   pasa a ser un `Row` con ese enlace a la izquierda y un segundo enlace de texto
   **"Regístrate"** a la derecha, en naranja (`AppColors.primary`) y con la misma
-  tipografía. Ambos son texto, sin botón ni fondo. Zona táctil ≥ 48dp.
+  tipografía. Ambos son texto plano, sin botón ni fondo. Zona táctil ≥ 48dp.
 - **Pantalla de registro** (fondo `#0D1117`, cabecera con el logo BASKETSTATS):
-  - Título "Crea tu cuenta" + subtítulo "Te avisaremos cuando un administrador la apruebe".
+  - Título "Crea tu cuenta".
+  - Subtítulo que deja clara la consecuencia del rol por defecto:
+    "Tu cuenta se creará como espectador, con acceso a seguir partidos en
+    directo. Un administrador puede ampliar tus permisos más adelante."
   - Campo "Nombre completo" (obligatorio).
   - Campo "Correo electrónico" (obligatorio, con validación de formato).
-  - Campo "Contraseña" (obligatorio, mínimo 8 caracteres, con toggle de visibilidad).
-  - Campo "Repite la contraseña" (debe coincidir).
-  - Dropdown "Club" (lista de clubs existentes; reutiliza `clubRepositoryProvider`).
-  - Dropdown "¿Cómo vas a usar la app?" con **solo** los roles solicitables:
-    Espectador (`VIEWER`), Anotador (`STATISTICIAN`), Entrenador (`COACH`).
+  - Campo "Contraseña" (obligatorio, mínimo 8 caracteres, toggle de visibilidad).
+  - Campo "Repite la contraseña" (debe coincidir con la anterior).
+  - Dropdown "Club" (opcional; lista de clubs existentes vía `clubRepositoryProvider`).
   - Checkbox de aceptación de términos (obligatorio para habilitar el envío).
   - Botón "Crear cuenta" full-width naranja, con spinner mientras se envía.
   - Enlace inferior "¿Ya tienes cuenta? Inicia sesión" que vuelve a `/login`.
-- **Tras un alta correcta:** volver a `/login` mostrando un `SnackBar` verde
-  "Cuenta creada. Un administrador debe aprobarla antes de que puedas entrar."
-  El usuario **no** queda logueado: no hay sesión hasta la aprobación.
-- **Errores 4xx** (correo ya registrado, etc.): `SnackBar` rojo con
+  - **Sin selector de rol.** No se ofrece ni se envía: el backend asigna `VIEWER`.
+- **Tras un alta correcta:** volver a `/login` con un `SnackBar` verde
+  "Cuenta creada. Ya puedes iniciar sesión." El usuario entra como `VIEWER` y
+  solo ve "Asistir a un partido" en el menú principal.
+- **Errores 4xx** (correo ya registrado, contraseña débil…): `SnackBar` rojo con
   `errors[0].message` del backend (Agent_Mobile.md §12.2).
 **Acciones:**
 1. Modificar `features/auth/presentation/pages/login_page.dart` (o
@@ -774,48 +784,52 @@ dependencias de UI.
    (estado `isSubmitting` / `errorMessage`, método `submit`).
 5. Añadir la ruta pública `/register` en `app_router.dart`, exenta del guard de
    auth igual que `/login`, y comprobar que el `redirect` global no la desvía.
-**Resultado:** Un usuario nuevo puede solicitar cuenta desde el login y recibe
-feedback claro de que queda pendiente de aprobación.
+**Resultado:** Un usuario nuevo puede crear su cuenta desde el login y entrar
+inmediatamente con permisos de espectador.
 
 ---
 
-### T-034: Implementar pantalla de Usuarios pendientes de aprobación
+### T-034: Implementar pantalla de Usuarios registrados y elevación de privilegios
 
-**Objetivo:** Dar al `SUPER_ADMIN` una cola donde revisar, aprobar o rechazar las
-solicitudes de alta.
+**Objetivo:** Dar al `SUPER_ADMIN` una pantalla donde ver los usuarios registrados
+recientemente y ampliarles el rol cuando corresponda.
 **Diseño a implementar:**
 - **Nueva card en el grupo "ADMINISTRACIÓN"** del menú principal (T-013):
-  "Usuarios pendientes" — icono de persona con check (`Icons.how_to_reg`),
-  subtítulo "Aprueba o rechaza las solicitudes de nuevas cuentas", borde
-  izquierdo azul (`AppColors.info`). **Visible solo para `SUPER_ADMIN`.**
-  Si hay solicitudes pendientes, mostrar su número en un badge sobre el icono.
-- **Pantalla de la cola** (mismo patrón visual que el panel de administración):
-  - AppBar con flecha atrás al menú principal y título "Usuarios pendientes".
+  "Usuarios registrados" — icono de gestión de personas (`Icons.manage_accounts`),
+  subtítulo "Consulta las altas recientes y ajusta sus permisos", borde izquierdo
+  azul (`AppColors.info`). **Visible solo para `SUPER_ADMIN`.**
+- **Pantalla del listado** (mismo patrón visual que el panel de administración):
+  - AppBar con flecha atrás al menú principal y título "Usuarios registrados".
   - Barra de búsqueda "Buscar usuario..." (reutiliza `AdminSearchBar`).
-  - Lista paginada de cards; cada una muestra: avatar con iniciales, nombre
-    (bold), correo (gris), rol solicitado como chip naranja, club al que se une,
-    y la antigüedad de la solicitud ("Hace 3 días").
-  - Dos acciones por card: **"Aprobar"** (botón verde `AppColors.success`) y
-    **"Rechazar"** (botón rojo `AppColors.error`).
-  - Al aprobar: diálogo de confirmación que permite **ajustar el rol final**
-    antes de conceder el alta (el rol solicitado es solo una petición).
-  - Al rechazar: diálogo de confirmación reutilizando `showConfirmDeleteDialog`
-    con etiqueta "Rechazar", con campo opcional de motivo.
-  - Estado vacío: "No hay solicitudes pendientes."
+  - Lista paginada, **más recientes primero**; cada card muestra: avatar con
+    iniciales, nombre (bold), correo (gris), rol actual como chip de color, club
+    al que pertenece y la antigüedad del alta ("Registrado hace 3 días").
+  - Acción por card: **"Cambiar rol"**, que abre un diálogo con un desplegable de
+    roles (Espectador, Anotador, Entrenador, Administrador de club) y un botón de
+    confirmación. El diálogo advierte del alcance del cambio antes de aplicarlo.
+  - Conceder `SUPER_ADMIN` queda fuera de esta pantalla: se hace en el backend.
+  - Estado vacío: "Todavía no hay usuarios registrados."
   - Footer de paginación (reutiliza `PaginationFooter`).
 **Acciones:**
-1. Crear `features/users/presentation/pages/pending_users_page.dart`.
-2. Crear `features/users/presentation/widgets/pending_user_card.dart`.
+1. Crear `features/users/presentation/pages/users_page.dart`.
+2. Crear `features/users/presentation/widgets/user_card.dart`.
 3. Crear `features/users/presentation/providers/users_providers.dart`
-   (datasource, repositorio y use cases) y
-   `pending_users_provider.dart` (lista, página, búsqueda, aprobar, rechazar).
+   (datasource, repositorio y use cases) y `users_admin_provider.dart`
+   (lista, página, búsqueda, cambio de rol).
 4. Añadir la ruta `/admin/users` en `app_router.dart` con guard de rol
-   restringido a `SUPER_ADMIN` (patrón de `_adminRoles`, pero más estricto).
+   restringido **solo** a `SUPER_ADMIN` (más estricto que el `_adminRoles` que ya
+   protege `/admin`).
 5. Añadir la card al array `_menuItems` de `main_menu_page.dart` con
    `allowedRoles: {UserRole.superAdmin}`.
-6. Exponer un provider con el contador de pendientes para el badge de la card.
-**Resultado:** El superadministrador ve las solicitudes de alta, las aprueba
-fijando el rol definitivo o las rechaza, y el usuario aprobado ya puede entrar.
+6. **Verificar el gating de `VIEWER`** (ya implementado, confirmar que sigue así
+   y cubrirlo con el widget test de T-038):
+   - "Tomar anotaciones" no aparece para `VIEWER` — su `allowedRoles` es
+     `{statistician, clubAdmin, superAdmin}`.
+   - "Panel de administración" no aparece para `VIEWER` — su `allowedRoles` es
+     `{superAdmin}`.
+   - La ruta `/matches/:id/annotate` rechaza a `VIEWER` en el `redirect` global.
+**Resultado:** El superadministrador ve las altas recientes y puede elevar el rol
+de un usuario; un `VIEWER` sigue sin acceso a anotación ni a administración.
 
 ---
 
@@ -915,7 +929,7 @@ fijando el rol definitivo o las rechaza, y el usuario aprobado ya puede entrar.
 | 6 | T-018 a T-021 | Pantalla de anotación (la más compleja) |
 | 7 | T-022 | Listado y selección de partidos |
 | 8 | T-023 a T-031 | Panel de Administración (CRUD clubs, equipos, jugadores, partidos) + Settings |
-| 9 | T-032 a T-034 | Registro de usuarios y aprobación por administrador |
+| 9 | T-032 a T-034 | Registro de usuarios y gestión de privilegios |
 | 10 | T-035 a T-036 | Observabilidad y UX polish |
 | 11 | T-037 a T-039 | Testing y CI/CD |
 | 12 | T-040 | State restoration |
