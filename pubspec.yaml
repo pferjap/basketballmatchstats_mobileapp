@@ -67,6 +67,9 @@ dependencies:
   sentry_flutter: ^8.2.0
   uuid: ^4.4.0
   intl: ^0.19.0
+  # Reads the app version shown on the settings screen. Already present
+  # transitively via sentry_flutter; declared here because we use it directly.
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

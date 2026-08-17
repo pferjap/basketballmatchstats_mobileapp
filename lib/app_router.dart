@@ -13,6 +13,7 @@ import 'features/matches/presentation/pages/court_view_page.dart';
 import 'features/matches/presentation/pages/match_list_page.dart';
 import 'features/matches/presentation/pages/match_live_page.dart';
 import 'features/matches/presentation/providers/match_list_provider.dart';
+import 'features/settings/presentation/pages/settings_page.dart';
 
 /// Route paths used across the app. Centralized so navigation calls and guards
 /// never rely on stringly-typed literals scattered through the codebase.
@@ -164,7 +165,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings,
         name: 'settings',
-        builder: (context, state) => const PlaceholderPage(title: 'Ajustes'),
+        builder: (context, state) => const SettingsPage(),
       ),
     ],
     errorBuilder: (context, state) => PlaceholderPage(
