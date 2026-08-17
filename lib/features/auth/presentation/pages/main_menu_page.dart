@@ -24,16 +24,16 @@ class MainMenuPage extends ConsumerWidget {
     final role = ref.watch(currentUserProvider)?.role;
     if (role == null) {
       // The route is auth-guarded, so this only happens transiently on logout.
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final liveCards = _menuItems
         .where((i) => i.group == _MenuGroup.liveMatch && i.isVisibleTo(role))
         .toList();
     final adminCards = _menuItems
-        .where((i) => i.group == _MenuGroup.administration && i.isVisibleTo(role))
+        .where(
+          (i) => i.group == _MenuGroup.administration && i.isVisibleTo(role),
+        )
         .toList();
 
     return Scaffold(
@@ -49,7 +49,12 @@ class MainMenuPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const UserHeader(),
+              const Row(
+                children: [
+                  Expanded(child: UserHeader()),
+                  _LogoutButton(),
+                ],
+              ),
               const SizedBox(height: kSpacingL),
               const Center(child: _BrandLogo()),
               const SizedBox(height: kSpacingXL),
@@ -75,6 +80,31 @@ class MainMenuPage extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Icon-only sign-out action in the header's top-right corner.
+///
+/// Clearing the session makes the router's redirect send the user to `/login`;
+/// navigating explicitly avoids leaving the menu on screen while the refresh
+/// listenable propagates.
+class _LogoutButton extends ConsumerWidget {
+  const _LogoutButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      icon: const Icon(Icons.logout),
+      color: AppColors.textSecondary,
+      iconSize: 26,
+      tooltip: 'Cerrar sesión',
+      onPressed: () async {
+        await ref.read(authStateProvider.notifier).logout();
+        if (context.mounted) {
+          context.go(AppRoutes.login);
+        }
+      },
     );
   }
 }
@@ -195,11 +225,7 @@ class _BrandLogo extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
-          Icons.sports_basketball,
-          size: 76,
-          color: AppColors.primary,
-        ),
+        const Icon(Icons.sports_basketball, size: 76, color: AppColors.primary),
         const SizedBox(height: kSpacingS),
         const Text.rich(
           TextSpan(
