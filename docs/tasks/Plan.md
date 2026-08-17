@@ -696,84 +696,112 @@
 
 ## Fase 9 — Feature: Registro de Usuarios y Gestión de Privilegios
 
-> **Dependencia a confirmar antes de empezar (bloquea T-033).** La instrucción de
-> origen remite a "la fase 2 de Agent_api" para los campos del registro, pero ese
-> documento **no está en el repositorio**: `docs/agents/api/Agent_api.md` no está
-> dividido en fases. Los campos definidos abajo se han derivado de la entidad
-> `User` del propio proyecto (`id`, `email`, `name`, `role`, `clubId`,
-> `avatarUrl`) y de los roles de `Agent_api.md` §9. **Contrastar con el documento
-> real antes de implementar la pantalla.**
+> **Estado real del backend — leer antes de planificar el trabajo.**
 >
-> **Endpoints asumidos** (tampoco documentados en `Agent_api.md`, que solo cita
-> "Registro" dentro del módulo `auth` en §5): `POST /auth/register`,
-> `GET /users` (paginado, ordenable por `createdAt` descendente) y
-> `PUT /users/:id/role`. Ajustar T-032 si el backend expone otra forma.
+> **1. `POST /auth/register` YA EXISTE.** Confirmado contra el código fuente de la
+> API (`auth.controller.ts`, `register.dto.ts`) y contra
+> `docs/agents/api/Plan.md` §2.1:
+> * Está marcado `@Public()` y cuelga del controlador `auth`, sin prefijo
+>   `/api/v1` — coherente con el `baseUrl` que ya usa el cliente.
+> * **Body exacto (`RegisterDto`), sin un campo más:** `email` (formato email),
+>   `password` (`@MinLength(8)`), `firstName` (string), `lastName` (string).
+>   **No acepta `role` ni `clubId`**; enviarlos haría fallar la validación.
+> * **Responde `AuthResponseDto`, el mismo tipo que `POST /auth/login`.** Es
+>   decir, **el registro devuelve tokens y deja la sesión iniciada**: no hay paso
+>   de aprobación ni segundo login. T-033 se apoya en esto.
+> * El backend asigna `VIEWER` y `clubId = null` (API Plan §2.1). Es el servidor
+>   quien lo impone, no el cliente.
 >
-> **Regla de seguridad (innegociable).** El cliente **nunca** envía un rol en el
-> registro: el backend asigna `VIEWER` siempre. La elevación de privilegios va
-> por un endpoint distinto, restringido a `SUPER_ADMIN` y validado en servidor.
-> Ocultar opciones en la UI es defensa en profundidad, no el control de acceso
-> real (Agent_Mobile.md §13, Agent_api.md §9).
+> **2. Los endpoints de usuarios NO están implementados todavía.** `docs/agents/api/Plan.md`
+> §2.1 los contempla como `PATCH /users/:id/role` y `PATCH /users/:id/club`,
+> restringidos a `SUPER_ADMIN` / `CLUB_ADMIN`, pero aún no existen. Tampoco hay un
+> `GET /users` especificado en ninguna parte. Por tanto **T-034 y el bloque
+> `features/users/` de T-032 están bloqueados** hasta que la API los publique. El
+> contrato que el cliente espera queda escrito en T-032 para que ambos lados se
+> implementen contra lo mismo.
+>
+> **Regla de seguridad.** El cliente nunca envía un rol al registrarse — el
+> `RegisterDto` ni siquiera lo admite — y la elevación de privilegios va por un
+> endpoint aparte validado en servidor. Ocultar cards por rol en la UI es defensa
+> en profundidad, no el control de acceso real (Agent_Mobile.md §13,
+> Agent_api.md §9, API Plan §2.1).
 
 ### T-032: Implementar domain y data layer de Registro y Gestión de Usuarios
 
-**Objetivo:** Crear las entidades, contratos y llamadas REST que sostienen el alta
-de usuarios y el cambio de rol por parte del superadministrador.
-**Acciones:**
-1. Añadir el campo `createdAt` a `features/auth/domain/entities/user.dart` y a
-   `user_model.dart`, necesario para ordenar el listado por antigüedad.
-2. Añadir `register(RegisterParams)` a
-   `features/auth/domain/repositories/auth_repository.dart`, con
-   `RegisterParams`: `name`, `email`, `password` y `clubId` opcional.
-   **No lleva campo de rol** — lo fija el backend.
-3. Crear el use case `RegisterUseCase`.
-4. Ampliar `features/auth/data/datasources/auth_remote_datasource.dart` con
-   `POST /auth/register`.
-5. Crear la feature `features/users/` (espeja el módulo `users/` del backend;
-   añade una carpeta que no figura en Agent_Mobile.md §5, anotarlo al
-   implementar):
-   - `domain/entities/app_user.dart`: `id`, `name`, `email`, `role`, `clubId`,
-     `clubName`, `avatarUrl`, `createdAt`.
-   - `domain/repositories/user_repository.dart`:
-     `getUsers(page, limit, {search})` — ordenado por `createdAt` descendente —
-     y `updateUserRole(userId, UserRole role)`.
-   - Use cases: `GetUsersUseCase`, `UpdateUserRoleUseCase`.
-   - `data/models/app_user_model.dart` (reutiliza el conversor de `UserRole` ya
-     existente en la feature auth), `data/datasources/user_remote_datasource.dart`
-     y `data/repositories/user_repository_impl.dart`.
-**Resultado:** Capa de dominio y datos del alta y del cambio de rol, testeable y
-sin dependencias de UI.
+**Objetivo:** Crear las entidades, contratos y llamadas REST del alta de usuarios
+y, cuando el backend lo permita, del cambio de rol.
+**Acciones (parte desbloqueada — registro):**
+1. Añadir `register(RegisterParams)` a
+   `features/auth/domain/repositories/auth_repository.dart`, con `RegisterParams`
+   espejando el `RegisterDto` real: `email`, `password`, `firstName`, `lastName`.
+   Devuelve el mismo par `AuthTokens` + `User` que `login()`.
+2. Crear el use case `RegisterUseCase`.
+3. Ampliar `features/auth/data/datasources/auth_remote_datasource.dart` con
+   `POST /auth/register`, **reutilizando `LoginResponseModel` para parsear la
+   respuesta**: `AuthResponseDto` es el mismo tipo que devuelve el login, así que
+   no hace falta un modelo nuevo.
+4. En `auth_repository_impl.dart`, tras un registro correcto **persistir los
+   tokens en secure storage igual que hace `login()`**, de modo que el usuario
+   quede autenticado sin volver a introducir credenciales.
+   *Nota verificada:* `UserModel.fromJson` ya compone `name` a partir de
+   `firstName` + `lastName` cuando el backend no envía `name`, así que el modelo
+   de usuario no necesita cambios.
+**Acciones (parte BLOQUEADA por backend — gestión de usuarios):**
+5. Crear la feature `features/users/` cuando la API exponga los endpoints. Espeja
+   el módulo `users/` del backend y añade una carpeta que no figura en
+   Agent_Mobile.md §5; anotarlo al implementar. Contrato que el cliente espera,
+   a acordar con el backend antes de escribir código:
+   - `GET /users?page=&limit=&search=` → lista paginada con el wrapper estándar,
+     ordenada por fecha de alta descendente. **Requiere que el DTO de usuario
+     exponga `createdAt`**, que hoy no está en el contrato.
+   - `PATCH /users/:id/role` con body `{ "role": "STATISTICIAN" }` (nomenclatura
+     de API Plan §2.1).
+   - `PATCH /users/:id/club` con body `{ "clubId": "…" }`, ya que el registro deja
+     `clubId = null` y hay que poder asociar al usuario a un club.
+   - `domain/entities/app_user.dart`: `id`, `firstName`, `lastName`, `email`,
+     `role`, `clubId`, `clubName`, `avatarUrl`, `createdAt`.
+   - `domain/repositories/user_repository.dart`: `getUsers(page, limit, {search})`,
+     `updateUserRole(userId, UserRole role)` y `updateUserClub(userId, clubId)`.
+   - Use cases `GetUsersUseCase`, `UpdateUserRoleUseCase` y `UpdateUserClubUseCase`,
+     más modelo, datasource y repositorio en `data/` (reutilizando
+     `UserRoleConverter`, que ya existe en la feature auth).
+**Resultado:** El alta queda operativa de extremo a extremo; la gestión de
+usuarios queda especificada y lista para conectarse en cuanto la API la exponga.
 
 ---
 
 ### T-033: Añadir enlace "Regístrate" al Login e implementar la pantalla de Registro
 
 **Objetivo:** Permitir que un usuario nuevo cree su cuenta desde el login. La
-cuenta nace siempre con rol `VIEWER`.
+cuenta nace como `VIEWER` y queda logueada al terminar.
 **Referencia visual:** `docs/images/login_screen.png` (misma paleta y estilo de campos)
 **Diseño a implementar:**
 - **En `login_page.dart`:** la fila que hoy contiene "¿Olvidaste tu contraseña?"
   pasa a ser un `Row` con ese enlace a la izquierda y un segundo enlace de texto
   **"Regístrate"** a la derecha, en naranja (`AppColors.primary`) y con la misma
   tipografía. Ambos son texto plano, sin botón ni fondo. Zona táctil ≥ 48dp.
-- **Pantalla de registro** (fondo `#0D1117`, cabecera con el logo BASKETSTATS):
+- **Pantalla de registro** (fondo `#0D1117`, cabecera con el logo BASKETSTATS).
+  Los campos son **exactamente** los del `RegisterDto`, ni uno más:
   - Título "Crea tu cuenta".
   - Subtítulo que deja clara la consecuencia del rol por defecto:
     "Tu cuenta se creará como espectador, con acceso a seguir partidos en
     directo. Un administrador puede ampliar tus permisos más adelante."
-  - Campo "Nombre completo" (obligatorio).
-  - Campo "Correo electrónico" (obligatorio, con validación de formato).
-  - Campo "Contraseña" (obligatorio, mínimo 8 caracteres, toggle de visibilidad).
-  - Campo "Repite la contraseña" (debe coincidir con la anterior).
-  - Dropdown "Club" (opcional; lista de clubs existentes vía `clubRepositoryProvider`).
+  - Campo "Nombre" → `firstName` (obligatorio).
+  - Campo "Apellidos" → `lastName` (obligatorio).
+  - Campo "Correo electrónico" → `email` (obligatorio, validación de formato).
+  - Campo "Contraseña" → `password` (obligatorio, **mínimo 8 caracteres**, para
+    coincidir con el `@MinLength(8)` del DTO; con toggle de visibilidad).
+  - Campo "Repite la contraseña" (validación solo de cliente; no viaja al backend).
   - Checkbox de aceptación de términos (obligatorio para habilitar el envío).
   - Botón "Crear cuenta" full-width naranja, con spinner mientras se envía.
   - Enlace inferior "¿Ya tienes cuenta? Inicia sesión" que vuelve a `/login`.
-  - **Sin selector de rol.** No se ofrece ni se envía: el backend asigna `VIEWER`.
-- **Tras un alta correcta:** volver a `/login` con un `SnackBar` verde
-  "Cuenta creada. Ya puedes iniciar sesión." El usuario entra como `VIEWER` y
-  solo ve "Asistir a un partido" en el menú principal.
-- **Errores 4xx** (correo ya registrado, contraseña débil…): `SnackBar` rojo con
+  - **Sin selector de rol y sin selector de club:** el DTO no los admite y el
+    backend fija `VIEWER` con `clubId = null`.
+- **Tras un alta correcta:** como la respuesta trae tokens, guardar la sesión y
+  navegar directamente a `/` (menú principal) con un `SnackBar` verde
+  "¡Bienvenido! Tu cuenta se ha creado." El usuario entra como `VIEWER`, así que
+  solo verá "Asistir a un partido".
+- **Errores 4xx** (correo ya registrado, contraseña corta…): `SnackBar` rojo con
   `errors[0].message` del backend (Agent_Mobile.md §12.2).
 **Acciones:**
 1. Modificar `features/auth/presentation/pages/login_page.dart` (o
@@ -781,15 +809,19 @@ cuenta nace siempre con rol `VIEWER`.
 2. Crear `features/auth/presentation/pages/register_page.dart`.
 3. Crear `features/auth/presentation/widgets/register_form.dart` (campos + validación).
 4. Crear `features/auth/presentation/providers/register_provider.dart`
-   (estado `isSubmitting` / `errorMessage`, método `submit`).
+   (estado `isSubmitting` / `errorMessage`, método `submit`), que al terminar
+   actualice `authStateProvider` para que el guard global deje pasar al menú.
 5. Añadir la ruta pública `/register` en `app_router.dart`, exenta del guard de
    auth igual que `/login`, y comprobar que el `redirect` global no la desvía.
-**Resultado:** Un usuario nuevo puede crear su cuenta desde el login y entrar
-inmediatamente con permisos de espectador.
+**Resultado:** Un usuario nuevo crea su cuenta desde el login y entra
+directamente con permisos de espectador.
 
 ---
 
 ### T-034: Implementar pantalla de Usuarios registrados y elevación de privilegios
+
+> **BLOQUEADA.** Requiere que la API publique antes el listado de usuarios y el
+> cambio de rol (contrato en T-032). No empezar hasta entonces.
 
 **Objetivo:** Dar al `SUPER_ADMIN` una pantalla donde ver los usuarios registrados
 recientemente y ampliarles el rol cuando corresponda.
@@ -802,12 +834,16 @@ recientemente y ampliarles el rol cuando corresponda.
   - AppBar con flecha atrás al menú principal y título "Usuarios registrados".
   - Barra de búsqueda "Buscar usuario..." (reutiliza `AdminSearchBar`).
   - Lista paginada, **más recientes primero**; cada card muestra: avatar con
-    iniciales, nombre (bold), correo (gris), rol actual como chip de color, club
-    al que pertenece y la antigüedad del alta ("Registrado hace 3 días").
+    iniciales, nombre completo (bold), correo (gris), rol actual como chip de
+    color, club al que pertenece — o "Sin club", ya que el registro deja
+    `clubId = null` — y la antigüedad del alta ("Registrado hace 3 días").
   - Acción por card: **"Cambiar rol"**, que abre un diálogo con un desplegable de
     roles (Espectador, Anotador, Entrenador, Administrador de club) y un botón de
-    confirmación. El diálogo advierte del alcance del cambio antes de aplicarlo.
-  - Conceder `SUPER_ADMIN` queda fuera de esta pantalla: se hace en el backend.
+    confirmación que advierte del alcance del cambio antes de aplicarlo.
+  - Acción secundaria: **"Asignar club"**, necesaria porque un rol como Anotador o
+    Entrenador carece de sentido sin club (`PATCH /users/:id/club`).
+  - Conceder `SUPER_ADMIN` queda fuera de esta pantalla: se hace en el backend
+    (API Plan §2.4 reserva la creación del primer superadmin a `POST /setup/init`).
   - Estado vacío: "Todavía no hay usuarios registrados."
   - Footer de paginación (reutiliza `PaginationFooter`).
 **Acciones:**
@@ -815,13 +851,13 @@ recientemente y ampliarles el rol cuando corresponda.
 2. Crear `features/users/presentation/widgets/user_card.dart`.
 3. Crear `features/users/presentation/providers/users_providers.dart`
    (datasource, repositorio y use cases) y `users_admin_provider.dart`
-   (lista, página, búsqueda, cambio de rol).
+   (lista, página, búsqueda, cambio de rol y de club).
 4. Añadir la ruta `/admin/users` en `app_router.dart` con guard de rol
    restringido **solo** a `SUPER_ADMIN` (más estricto que el `_adminRoles` que ya
    protege `/admin`).
 5. Añadir la card al array `_menuItems` de `main_menu_page.dart` con
    `allowedRoles: {UserRole.superAdmin}`.
-6. **Verificar el gating de `VIEWER`** (ya implementado, confirmar que sigue así
+6. **Verificar el gating de `VIEWER`** (ya implementado; confirmar que sigue así
    y cubrirlo con el widget test de T-038):
    - "Tomar anotaciones" no aparece para `VIEWER` — su `allowedRoles` es
      `{statistician, clubAdmin, superAdmin}`.
@@ -829,7 +865,8 @@ recientemente y ampliarles el rol cuando corresponda.
      `{superAdmin}`.
    - La ruta `/matches/:id/annotate` rechaza a `VIEWER` en el `redirect` global.
 **Resultado:** El superadministrador ve las altas recientes y puede elevar el rol
-de un usuario; un `VIEWER` sigue sin acceso a anotación ni a administración.
+de un usuario y asignarle club; un `VIEWER` sigue sin acceso a anotación ni a
+administración.
 
 ---
 
