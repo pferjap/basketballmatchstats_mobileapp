@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required in release builds: the debug/profile manifests declare this
+         permission for the Flutter tool, so without it here the REST client and
+         the WebSocket gateway have no network access once shipped. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="Basketball Stats"
         android:name="${applicationName}"
