@@ -469,21 +469,187 @@
 
 ---
 
-## Fase 8 — Features Secundarias
+## Fase 8 — Feature: Panel de Administración (CRUD Clubs, Equipos, Jugadores, Partidos)
 
-### T-023: Implementar feature Teams/Players (listados básicos)
-**Objetivo:** Pantallas de administración básica de equipos y jugadores.
+### T-023: Implementar domain y data layer de Clubs
+**Objetivo:** Crear entidades, modelos, datasource y repositorio para la gestión de clubes.
 **Acciones:**
-1. Crear domain + data layer para Teams (`GET /teams?clubId=X`).
-2. Crear domain + data layer para Players (`GET /players?teamId=X`).
-3. Crear pantalla de lista de equipos con navegación a jugadores.
-4. Crear pantalla de lista de jugadores (dorsal, nombre, posición, foto).
-5. Conectar con la card "Administrar mi equipo" del menú principal.
-**Resultado:** Navegación funcional Club → Equipos → Jugadores.
+1. Crear `features/clubs/domain/entities/club.dart`: Entidad `Club` con `id`, `name`, `logoUrl`, `city`, `country`, `foundedYear`, `createdAt`.
+2. Crear `features/clubs/domain/repositories/club_repository.dart`: Interfaz abstracta con `getClubs(page, limit, {search, filters})`, `getClub(clubId)`, `createClub(CreateClubParams)`, `updateClub(clubId, UpdateClubParams)`, `deleteClub(clubId)`.
+3. Crear use cases: `GetClubsUseCase`, `GetClubUseCase`, `CreateClubUseCase`, `UpdateClubUseCase`, `DeleteClubUseCase`.
+4. Crear `features/clubs/data/models/club_model.dart` (Freezed, con factory fromJson/toJson).
+5. Crear `features/clubs/data/datasources/club_remote_datasource.dart`: llamadas REST a `GET /clubs`, `GET /clubs/:id`, `POST /clubs`, `PUT /clubs/:id`, `DELETE /clubs/:id`.
+6. Crear `features/clubs/data/repositories/club_repository_impl.dart`.
+7. Ejecutar `dart run build_runner build`.
+**Resultado:** Capa de dominio y datos de clubes completa y testeable.
 
 ---
 
-### T-024: Implementar feature Settings (perfil y preferencias)
+### T-024: Implementar domain y data layer de Teams
+**Objetivo:** Crear entidades, modelos, datasource y repositorio para la gestión de equipos.
+**Acciones:**
+1. Crear `features/teams/domain/entities/team.dart`: Entidad `Team` con `id`, `name`, `clubId`, `clubName`, `category`, `logoUrl`, `seasonId`, `createdAt`.
+2. Crear `features/teams/domain/repositories/team_repository.dart`: Interfaz abstracta con `getTeams(page, limit, {clubId, search, filters})`, `getTeam(teamId)`, `createTeam(CreateTeamParams)`, `updateTeam(teamId, UpdateTeamParams)`, `deleteTeam(teamId)`.
+3. Crear use cases: `GetTeamsUseCase`, `GetTeamUseCase`, `CreateTeamUseCase`, `UpdateTeamUseCase`, `DeleteTeamUseCase`.
+4. Crear `features/teams/data/models/team_model.dart` (Freezed, con factory fromJson/toJson).
+5. Crear `features/teams/data/datasources/team_remote_datasource.dart`: llamadas REST a `GET /teams`, `GET /teams/:id`, `POST /teams`, `PUT /teams/:id`, `DELETE /teams/:id`.
+6. Crear `features/teams/data/repositories/team_repository_impl.dart`.
+7. Ejecutar `dart run build_runner build`.
+**Resultado:** Capa de dominio y datos de equipos completa y testeable.
+
+---
+
+### T-025: Implementar domain y data layer de Players
+**Objetivo:** Crear entidades, modelos, datasource y repositorio para la gestión de jugadores.
+**Acciones:**
+1. Crear `features/players/domain/entities/player.dart`: Entidad `Player` con `id`, `firstName`, `lastName`, `jerseyNumber`, `position` (enum: PG, SG, SF, PF, C), `teamId`, `teamName`, `photoUrl`, `birthDate`, `height`, `weight`, `createdAt`.
+2. Crear `features/players/domain/repositories/player_repository.dart`: Interfaz abstracta con `getPlayers(page, limit, {teamId, search, filters})`, `getPlayer(playerId)`, `createPlayer(CreatePlayerParams)`, `updatePlayer(playerId, UpdatePlayerParams)`, `deletePlayer(playerId)`.
+3. Crear use cases: `GetPlayersUseCase`, `GetPlayerUseCase`, `CreatePlayerUseCase`, `UpdatePlayerUseCase`, `DeletePlayerUseCase`.
+4. Crear `features/players/data/models/player_model.dart` (Freezed, con factory fromJson/toJson).
+5. Crear `features/players/data/datasources/player_remote_datasource.dart`: llamadas REST a `GET /players`, `GET /players/:id`, `POST /players`, `PUT /players/:id`, `DELETE /players/:id`.
+6. Crear `features/players/data/repositories/player_repository_impl.dart`.
+7. Ejecutar `dart run build_runner build`.
+**Resultado:** Capa de dominio y datos de jugadores completa y testeable.
+
+---
+
+### T-026: Implementar scaffold del Panel de Administración y tab Clubs
+**Objetivo:** Crear la pantalla principal del panel de administración con navegación por tabs y la pestaña de Clubs completa.
+**Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png`
+**Diseño a implementar:**
+- **AppBar:**
+  - Icono hamburguesa (izquierda) para drawer/navegación lateral.
+  - Título centrado: "Panel de administración" (blanco bold) + subtítulo "Gestiona clubes, equipos, jugadores y partidos" (gris).
+  - Icono de campana de notificaciones (derecha) con badge numérico rojo (ej. "3").
+- **Tab Bar (4 tabs con iconos):**
+  - "Clubs" (icono escudo/shield) — tab activa: texto azul + icono azul + línea inferior azul.
+  - "Equipos" (icono grupo de personas).
+  - "Jugadores" (icono persona).
+  - "Partidos" (icono calendario).
+  - Fondo de la tab bar: gris oscuro (#1C2128), tabs inactivas: texto gris.
+- **Contenido de la tab Clubs:**
+  - **Header de sección:** Título "Clubs" (blanco, bold, izquierda) + botón "+ Crear club" (azul, derecha, border-radius).
+  - **Barra de búsqueda:** Icono lupa + placeholder "Buscar club..." (fondo gris oscuro, border-radius) + botón "Filtros" con icono de embudo (derecha).
+  - **Lista de clubs (cards):** Cada card muestra:
+    - Logo/escudo del club (circular, izquierda, ~48px).
+    - Nombre del club (blanco, bold, ej. "Tigres Basket").
+    - Icono ubicación + ciudad y país (gris, ej. "Madrid, España").
+    - Icono calendario + año de fundación (gris, ej. "Desde 2018").
+    - Botón tres puntos verticales "⋮" (menú contextual: editar, ver detalles).
+    - Botón papelera/eliminar (icono rojo).
+    - Fondo card: gris oscuro (#1C2128), bordes sutiles.
+  - **Paginación (footer):** Texto "Mostrando 1 - 7 de 7 clubes" (izquierda, gris) + controles de paginación: flechas "<" y ">" + número de página activo (azul con borde) + páginas inactivas.
+- **Fondo general:** oscuro (#0D1117).
+- **Accesibilidad:** Solo visible para roles `SUPER_ADMIN` y `CLUB_ADMIN`.
+**Acciones:**
+1. Crear `features/clubs/presentation/pages/admin_panel_page.dart`:
+   - Scaffold con AppBar (hamburguesa, título, campana con badge).
+   - `TabBar` + `TabBarView` con 4 tabs (Clubs, Equipos, Jugadores, Partidos).
+2. Crear `features/clubs/presentation/pages/clubs_tab.dart`:
+   - Header con título "Clubs" y botón "+ Crear club".
+   - Barra de búsqueda con debounce (300ms) + botón Filtros.
+   - Lista paginada de clubs usando `ListView.builder`.
+   - Paginación numérica en el footer.
+3. Crear `features/clubs/presentation/widgets/club_card.dart`:
+   - Logo circular + nombre + ubicación + fecha fundación + menú contextual + botón eliminar.
+4. Crear `features/clubs/presentation/widgets/admin_search_bar.dart` (widget reutilizable: campo de búsqueda + botón filtros).
+5. Crear `features/clubs/presentation/widgets/pagination_footer.dart` (widget reutilizable: "Mostrando X de Y" + controles de página).
+6. Crear `features/clubs/presentation/widgets/admin_section_header.dart` (widget reutilizable: título + botón crear).
+7. Crear `features/clubs/presentation/providers/clubs_admin_provider.dart`:
+   - Estado: lista de clubs, página actual, total, búsqueda, filtros, loading, error.
+   - Métodos: `loadClubs(page, search, filters)`, `deleteClub(clubId)` con confirmación.
+8. Crear diálogo de confirmación de eliminación reutilizable.
+9. Conectar con la card "Panel de administración" del menú principal (T-013).
+10. Añadir ruta `/admin` en `app_router.dart` con guard de rol (`SUPER_ADMIN`, `CLUB_ADMIN`).
+**Resultado:** Panel de administración con tab Clubs completamente funcional — listado, búsqueda, paginación, y eliminación.
+
+---
+
+### T-027: Implementar formulario de creación/edición de Club
+**Objetivo:** Crear el formulario modal o pantalla para crear y editar clubs.
+**Acciones:**
+1. Crear `features/clubs/presentation/pages/club_form_page.dart`:
+   - Modo crear (campos vacíos) y modo editar (campos pre-rellenados).
+   - Campos: nombre del club (required), ciudad, país, año de fundación, logo (image picker placeholder).
+   - Validación de campos (nombre no vacío, año válido).
+   - Botón "Guardar" (azul) y "Cancelar".
+2. Crear `features/clubs/presentation/providers/club_form_provider.dart`:
+   - Gestiona estado del formulario, validación y submit.
+   - Al crear: `POST /clubs` → en éxito, volver a la lista y refrescar.
+   - Al editar: `PUT /clubs/:id` → en éxito, volver a la lista y refrescar.
+3. Conectar botón "+ Crear club" de T-026 con la apertura del formulario en modo crear.
+4. Conectar opción "Editar" del menú contextual "⋮" con la apertura del formulario en modo editar.
+**Resultado:** CRUD completo de clubs (crear, leer lista, editar, eliminar).
+
+---
+
+### T-028: Implementar tab Equipos en Panel de Administración
+**Objetivo:** Crear la pestaña de Equipos dentro del panel de administración con el mismo patrón visual que Clubs.
+**Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
+**Diseño a implementar:**
+- Mismo layout que la tab Clubs:
+  - Header: "Equipos" + botón "+ Crear equipo" (azul).
+  - Barra de búsqueda "Buscar equipo..." + botón Filtros.
+  - Cards de equipo: logo circular + nombre del equipo (bold) + icono escudo + nombre del club al que pertenece (gris) + categoría (gris) + menú "⋮" + botón eliminar (rojo).
+  - Paginación footer.
+**Acciones:**
+1. Crear `features/teams/presentation/pages/teams_tab.dart` (reutiliza `admin_search_bar`, `pagination_footer`, `admin_section_header`).
+2. Crear `features/teams/presentation/widgets/team_card.dart` (logo + nombre + club + categoría + acciones).
+3. Crear `features/teams/presentation/providers/teams_admin_provider.dart`.
+4. Crear `features/teams/presentation/pages/team_form_page.dart`:
+   - Campos: nombre del equipo (required), club (dropdown de clubs existentes), categoría, logo.
+   - Modo crear y modo editar.
+5. Crear `features/teams/presentation/providers/team_form_provider.dart`.
+6. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
+**Resultado:** Tab Equipos funcional con CRUD completo dentro del panel de administración.
+
+---
+
+### T-029: Implementar tab Jugadores en Panel de Administración
+**Objetivo:** Crear la pestaña de Jugadores dentro del panel de administración con el mismo patrón visual.
+**Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
+**Diseño a implementar:**
+- Mismo layout que las tabs anteriores:
+  - Header: "Jugadores" + botón "+ Crear jugador" (azul).
+  - Barra de búsqueda "Buscar jugador..." + botón Filtros.
+  - Cards de jugador: foto circular + nombre completo (bold) + dorsal (#número) + posición (ej. "Base", "Alero") + icono equipo + nombre del equipo (gris) + menú "⋮" + botón eliminar (rojo).
+  - Paginación footer.
+**Acciones:**
+1. Crear `features/players/presentation/pages/players_tab.dart` (reutiliza widgets compartidos).
+2. Crear `features/players/presentation/widgets/player_card.dart` (foto + nombre + dorsal + posición + equipo + acciones).
+3. Crear `features/players/presentation/providers/players_admin_provider.dart`.
+4. Crear `features/players/presentation/pages/player_form_page.dart`:
+   - Campos: nombre, apellido, dorsal (required), posición (dropdown: PG, SG, SF, PF, C), equipo (dropdown), fecha nacimiento, altura, peso, foto.
+   - Modo crear y modo editar.
+5. Crear `features/players/presentation/providers/player_form_provider.dart`.
+6. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
+**Resultado:** Tab Jugadores funcional con CRUD completo dentro del panel de administración.
+
+---
+
+### T-030: Implementar tab Partidos en Panel de Administración
+**Objetivo:** Crear la pestaña de Partidos dentro del panel de administración con CRUD para programar y gestionar partidos.
+**Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
+**Diseño a implementar:**
+- Mismo layout que las tabs anteriores:
+  - Header: "Partidos" + botón "+ Crear partido" (azul).
+  - Barra de búsqueda "Buscar partido..." + botón Filtros.
+  - Cards de partido: icono de estado (badge: "Programado" azul, "En curso" verde, "Finalizado" gris) + equipos "Equipo Local vs Equipo Visitante" (bold) + icono competición + nombre de la competición (gris) + fecha y hora programada (gris) + menú "⋮" + botón eliminar (rojo).
+  - Paginación footer.
+**Acciones:**
+1. Crear `features/matches/presentation/pages/matches_tab.dart` (reutiliza widgets compartidos).
+2. Crear `features/matches/presentation/widgets/match_admin_card.dart` (estado + equipos + competición + fecha + acciones).
+3. Crear `features/matches/presentation/providers/matches_admin_provider.dart`.
+4. Crear `features/matches/presentation/pages/match_form_page.dart`:
+   - Campos: equipo local (dropdown), equipo visitante (dropdown), competición (dropdown), temporada (dropdown), fecha y hora (date/time picker), lugar/cancha.
+   - Modo crear y modo editar.
+5. Crear `features/matches/presentation/providers/match_form_provider.dart`.
+6. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
+**Resultado:** Tab Partidos funcional con CRUD completo dentro del panel de administración.
+
+---
+
+### T-031: Implementar feature Settings (perfil y preferencias)
 **Objetivo:** Pantalla de configuración del usuario.
 **Acciones:**
 1. Crear `features/settings/presentation/pages/settings_page.dart`:
@@ -499,7 +665,7 @@
 
 ## Fase 9 — Observabilidad y Polish
 
-### T-025: Integrar Sentry y logging estructurado
+### T-032: Integrar Sentry y logging estructurado
 **Objetivo:** Configurar crash reporting y logging (§4 Agent_Mobile.md — Observabilidad).
 **Acciones:**
 1. Inicializar Sentry en `main.dart` con DSN desde `EnvConfig` (solo staging/prod).
@@ -510,7 +676,7 @@
 
 ---
 
-### T-026: Implementar indicadores de conexión y sincronización globales
+### T-033: Implementar indicadores de conexión y sincronización globales
 **Objetivo:** Widgets globales que muestran el estado del sistema.
 **Acciones:**
 1. Crear `lib/core/widgets/connection_indicator.dart` — punto verde/amarillo/rojo en la barra superior de pantallas de partido.
@@ -523,7 +689,7 @@
 
 ## Fase 10 — Testing y CI
 
-### T-027: Implementar unit tests del core y domain
+### T-034: Implementar unit tests del core y domain
 **Objetivo:** Cobertura ≥ 80% en domain + core (§14 Agent_Mobile.md).
 **Acciones:**
 1. Tests para `AuthInterceptor` (inyección de token, refresh on 401, race condition).
@@ -536,18 +702,19 @@
 
 ---
 
-### T-028: Implementar widget tests de pantallas críticas
-**Objetivo:** Validar la UI del Court View y Login.
+### T-035: Implementar widget tests de pantallas críticas
+**Objetivo:** Validar la UI del Court View, Login y Panel de Administración.
 **Acciones:**
 1. Widget test de `LoginPage`: renderiza campos, valida inputs vacíos, muestra error en credenciales inválidas.
 2. Widget test de `CourtViewPage`: renderiza grid de acciones, seleccionar acción cambia paso, seleccionar jugador dispara evento.
 3. Widget test de `MatchLivePage`: renderiza score header, feed se actualiza al recibir evento en stream mock.
 4. Widget test de `MainMenuPage`: cards correctas según rol del usuario.
+5. Widget test de `AdminPanelPage`: renderiza 4 tabs, búsqueda filtra resultados, paginación funciona, botón crear abre formulario.
 **Resultado:** Tests de UI que previenen regresiones en pantallas críticas.
 
 ---
 
-### T-029: Configurar pipeline CI (GitHub Actions)
+### T-036: Configurar pipeline CI (GitHub Actions)
 **Objetivo:** Pipeline automatizado de calidad (§15 Agent_Mobile.md).
 **Acciones:**
 1. Crear `.github/workflows/ci.yml`:
@@ -562,7 +729,7 @@
 
 ## Fase 11 — State Restoration y Final Polish
 
-### T-030: Implementar state restoration de partido en progreso
+### T-037: Implementar state restoration de partido en progreso
 **Objetivo:** Persistir estado del partido para recuperación tras kill del SO (§17 Agent_Mobile.md).
 **Acciones:**
 1. En `annotation_state_provider.dart`: cada vez que se registra un evento o cambia el período/reloj, persistir snapshot en `match_cache` (Drift).
@@ -585,11 +752,11 @@
 | 5 | T-017 | Sala de retransmisión en directo |
 | 6 | T-018 a T-021 | Pantalla de anotación (la más compleja) |
 | 7 | T-022 | Listado y selección de partidos |
-| 8 | T-023 a T-024 | Features secundarias (teams, settings) |
-| 9 | T-025 a T-026 | Observabilidad y UX polish |
-| 10 | T-027 a T-029 | Testing y CI/CD |
-| 11 | T-030 | State restoration |
+| 8 | T-023 a T-031 | Panel de Administración (CRUD clubs, equipos, jugadores, partidos) + Settings |
+| 9 | T-032 a T-033 | Observabilidad y UX polish |
+| 10 | T-034 a T-036 | Testing y CI/CD |
+| 11 | T-037 | State restoration |
 
-**Total: 30 tareas / 11 fases.**
+**Total: 37 tareas / 11 fases.**
 
 > Cada tarea es un commit atómico. Se recomienda hacer PR por fase completa.
