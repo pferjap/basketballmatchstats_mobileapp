@@ -8,7 +8,6 @@ import '../../../../core/theme/ui_constants.dart';
 import '../models/court_view_args.dart';
 import '../providers/annotation_state_provider.dart';
 import '../widgets/action_grid.dart';
-import '../widgets/annotation_bottom_bar.dart';
 import '../widgets/annotation_history_tab.dart';
 import '../widgets/annotation_score_header.dart';
 import '../widgets/annotation_stepper.dart';
@@ -120,6 +119,12 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
             onClockTick: controller.setGameClock,
           ),
           _TabHeader(controller: _tabController),
+          _TeamToggle(
+            home: _args.home,
+            away: _args.away,
+            annotatingTeamId: state.annotatingTeamId,
+            onTeamChanged: controller.setAnnotatingTeam,
+          ),
           const Divider(color: AppColors.divider, height: 1),
           Expanded(
             child: TabBarView(
@@ -144,13 +149,32 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
           ),
         ],
       ),
-      bottomNavigationBar: AnnotationBottomBar(
-        home: _args.home,
-        away: _args.away,
-        annotatingTeamId: state.annotatingTeamId,
-        onTeamChanged: controller.setAnnotatingTeam,
-        onUndo: controller.undoLast,
-        undoEnabled: state.events.isNotEmpty,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: AppColors.surface,
+          padding: const EdgeInsets.symmetric(
+            horizontal: kSpacingM,
+            vertical: kSpacingS,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              TextButton.icon(
+                onPressed: state.events.isNotEmpty ? controller.undoLast : null,
+                icon: const Icon(Icons.undo, color: AppColors.primary),
+                label: const Text(
+                  'DESHACER ÚLTIMA ACCIÓN',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -183,6 +207,89 @@ class _TabHeader extends StatelessWidget {
             child: Text('HISTORIAL'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TeamToggle extends StatelessWidget {
+  const _TeamToggle({
+    required this.home,
+    required this.away,
+    required this.annotatingTeamId,
+    required this.onTeamChanged,
+  });
+
+  final CourtTeam home;
+  final CourtTeam away;
+  final String annotatingTeamId;
+  final ValueChanged<String> onTeamChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.background,
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingM, vertical: 6),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: _ToggleChip(
+              label: home.name.toUpperCase(),
+              selected: annotatingTeamId == home.id,
+              onTap: () => onTeamChanged(home.id),
+            ),
+          ),
+          const SizedBox(width: kSpacingS),
+          Expanded(
+            child: _ToggleChip(
+              label: away.name.toUpperCase(),
+              selected: annotatingTeamId == away.id,
+              onTap: () => onTeamChanged(away.id),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleChip extends StatelessWidget {
+  const _ToggleChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.divider,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.primary : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }

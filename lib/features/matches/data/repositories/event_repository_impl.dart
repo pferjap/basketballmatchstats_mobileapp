@@ -88,18 +88,14 @@ class EventRepositoryImpl implements EventRepository {
   }) {
     final coordinates = params.coordinates;
     return <String, dynamic>{
-      'id': id,
-      'matchId': matchId,
       'teamId': params.teamId,
-      'playerId': params.playerId,
+      if (params.playerId != null) 'playerId': params.playerId,
       'eventType': const EventTypeConverter().toJson(params.eventType),
       'period': params.period,
       'gameClock': params.gameClock,
-      'coordinates': coordinates == null
-          ? null
-          : CoordinatesModel.fromEntity(coordinates).toJson(),
-      'metadata': params.metadata,
-      'createdAt': createdAt.toIso8601String(),
+      if (coordinates != null)
+        'coordinates': CoordinatesModel.fromEntity(coordinates).toJson(),
+      if (params.metadata != null) 'metadata': params.metadata,
     };
   }
 }

@@ -58,13 +58,10 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
     MatchListMode.spectate => 'Asistir a un partido',
   };
 
-  void _openMatch(Match match) {
-    final homeName =
-        ref.read(teamNameProvider(match.homeTeamId)).valueOrNull ??
-            match.homeTeamId;
-    final awayName =
-        ref.read(teamNameProvider(match.awayTeamId)).valueOrNull ??
-            match.awayTeamId;
+  Future<void> _openMatch(Match match) async {
+    final homeName = await ref.read(teamNameProvider(match.homeTeamId).future);
+    final awayName = await ref.read(teamNameProvider(match.awayTeamId).future);
+    if (!mounted) return;
 
     switch (widget.mode) {
       case MatchListMode.annotate:
