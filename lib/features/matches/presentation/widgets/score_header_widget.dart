@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../domain/entities/match_score.dart';
+import '../providers/match_clock_store.dart';
 
 /// The dark scoreboard card at the top of the live-match screen: crests, team
 /// names, the large score (winning side in green), and the period + clock with
@@ -14,6 +17,7 @@ class ScoreHeaderWidget extends StatelessWidget {
     required this.awayTeamName,
     required this.awayClubName,
     required this.score,
+    this.matchId,
     this.periodCount = 5,
     super.key,
   });
@@ -25,6 +29,9 @@ class ScoreHeaderWidget extends StatelessWidget {
 
   /// Latest scoreboard, or `null` before the initial load resolves.
   final MatchScore? score;
+
+  /// Match id used to show the live game clock persisted by the annotator.
+  final String? matchId;
 
   /// Number of navigation dots (quarters + summary).
   final int periodCount;
@@ -79,7 +86,7 @@ class ScoreHeaderWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: kSpacingM),
-          _PeriodClock(score: score),
+          _PeriodClock(score: score, matchId: matchId),
           const SizedBox(height: kSpacingXS),
           const Text(
             'Tiempo de cuarto',
@@ -161,45 +168,123 @@ class _ScoreValue extends StatelessWidget {
 }
 
 class _PeriodClock extends StatelessWidget {
-  const _PeriodClock({required this.score});
+  const _PeriodClock({required this.score, this.matchId});
 
   final MatchScore? score;
+  final String? matchId;
 
   @override
   Widget build(BuildContext context) {
     final period = score?.currentPeriod;
-    final clock = score?.gameClock ?? '--:--';
     final periodLabel = period == null
         ? '--'
         : period <= 4
         ? 'Q$period'
         : 'OT${period - 4}';
-    return Text.rich(
-      TextSpan(
-        children: <TextSpan>[
-          TextSpan(
-            text: periodLabel,
-            style: const TextStyle(
-              color: AppColors.success,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const TextSpan(
-            text: ' · ',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 18),
-          ),
-          TextSpan(
-            text: clock,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
+    const labelStyle = TextStyle(
+      color: AppColors.textPrimary,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
     );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          periodLabel,
+          style: const TextStyle(
+            color: AppColors.success,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const Text(
+          ' · ',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 18),
+        ),
+        _SpectatorClock(
+          matchId: matchId,
+          fallback: score?.gameClock ?? '--:--',
+          style: labelStyle,
+        ),
+      ],
+    );
+  }
+}
+
+/// A read-only game clock for spectators. It restores the clock the annotator
+/// persisted for this match (same device) and keeps ticking while running;
+/// otherwise it shows the last-known [fallback] value from the score feed.
+class _SpectatorClock extends StatefulWidget {
+  const _SpectatorClock({
+    required this.matchId,
+    required this.fallback,
+    required this.style,
+  });
+
+  final String? matchId;
+  final String fallback;
+  final TextStyle style;
+
+  @override
+  State<_SpectatorClock> createState() => _SpectatorClockState();
+}
+
+class _SpectatorClockState extends State<_SpectatorClock> {
+  Timer? _timer;
+  int? _remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  @override
+  void didUpdateWidget(_SpectatorClock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.matchId != oldWidget.matchId) {
+      _restore();
+    }
+  }
+
+  Future<void> _restore() async {
+    final id = widget.matchId;
+    if (id == null) return;
+    final snapshot = await MatchClockStore.read(id);
+    if (!mounted || snapshot == null) return;
+    setState(() => _remaining = snapshot.remainingSeconds);
+    _timer?.cancel();
+    if (snapshot.running && snapshot.remainingSeconds > 0) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() {
+          final next = (_remaining ?? 0) - 1;
+          _remaining = next < 0 ? 0 : next;
+          if (_remaining! <= 0) {
+            _timer?.cancel();
+          }
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _format(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = _remaining;
+    final text = remaining != null ? _format(remaining) : widget.fallback;
+    return Text(text, style: widget.style);
   }
 }
 

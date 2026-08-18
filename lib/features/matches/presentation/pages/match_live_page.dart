@@ -109,6 +109,7 @@ class MatchLivePage extends ConsumerWidget {
             awayTeamName: info.awayTeamName,
             awayClubName: info.awayClubName,
             score: state.score,
+            matchId: matchId,
           ),
           const Divider(color: AppColors.divider, height: 1),
           Expanded(

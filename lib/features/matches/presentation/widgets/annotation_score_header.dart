@@ -17,6 +17,7 @@ class AnnotationScoreHeader extends StatelessWidget {
     required this.homeFouls,
     required this.awayFouls,
     required this.clockSeconds,
+    this.matchId,
     this.onClockTick,
     this.clockKey,
     super.key,
@@ -29,6 +30,9 @@ class AnnotationScoreHeader extends StatelessWidget {
   final int homeFouls;
   final int awayFouls;
   final int clockSeconds;
+
+  /// Match id used to persist/restore the game clock across screen re-entry.
+  final String? matchId;
   final ValueChanged<String>? onClockTick;
 
   /// Key for the clock widget; change it (e.g. per period) to reset the clock.
@@ -58,6 +62,7 @@ class AnnotationScoreHeader extends StatelessWidget {
               GameClockWidget(
                 key: clockKey,
                 initialSeconds: clockSeconds,
+                matchId: matchId,
                 onTick: onClockTick,
               ),
               Expanded(
