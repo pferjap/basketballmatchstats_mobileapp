@@ -120,6 +120,19 @@ void main() {
     expect(find.text(_panelAdmin), findsOneWidget);
   });
 
+  testWidgets('super admin sees the registered-users card', (tester) async {
+    await _pumpMenu(tester, UserRole.superAdmin);
+
+    expect(find.text('Usuarios registrados'), findsOneWidget);
+  });
+
+  testWidgets('non super admins do not see the registered-users card',
+      (tester) async {
+    await _pumpMenu(tester, UserRole.clubAdmin);
+
+    expect(find.text('Usuarios registrados'), findsNothing);
+  });
+
   testWidgets('tapping a card navigates to its route', (tester) async {
     final container = await _pumpMenu(tester, UserRole.superAdmin);
 

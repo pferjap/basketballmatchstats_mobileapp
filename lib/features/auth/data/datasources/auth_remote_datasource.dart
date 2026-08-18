@@ -33,6 +33,30 @@ class AuthRemoteDataSource {
     );
   }
 
+  Future<LoginResponseModel> register({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    final body = await _post(
+      '/auth/register',
+      <String, dynamic>{
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'lastName': lastName,
+      },
+    );
+    // `AuthResponseDto` is the same shape returned by `/auth/login`, so the
+    // login model parses the register response too.
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          LoginResponseModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
   Future<AuthTokens> refresh({required String refreshToken}) async {
     final body = await _post(
       '/auth/refresh',

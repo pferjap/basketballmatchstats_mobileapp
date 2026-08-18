@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../providers/auth_providers.dart';
@@ -123,17 +125,32 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             ),
           ),
           const SizedBox(height: kSpacingM),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: isLoading ? null : () {},
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, kMinTouchTarget),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                onPressed: isLoading ? null : () {},
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, kMinTouchTarget),
+                ),
+                child: const Text('¿Olvidaste tu contraseña?'),
               ),
-              child: const Text('¿Olvidaste tu contraseña?'),
-            ),
+              TextButton(
+                onPressed:
+                    isLoading ? null : () => context.go(AppRoutes.register),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, kMinTouchTarget),
+                ),
+                child: const Text(
+                  'Regístrate',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: kSpacingM),
           SizedBox(

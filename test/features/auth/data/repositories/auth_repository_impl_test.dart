@@ -7,6 +7,7 @@ import 'package:hoop_analytics/features/auth/data/models/user_model.dart';
 import 'package:hoop_analytics/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:hoop_analytics/features/auth/domain/entities/auth_tokens.dart';
 import 'package:hoop_analytics/features/auth/domain/entities/user.dart';
+import 'package:hoop_analytics/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockRemote extends Mock implements AuthRemoteDataSource {}
@@ -56,6 +57,36 @@ void main() {
       final user = await repository.login(
         email: 'coach@club.com',
         password: 'secret',
+      );
+
+      expect(user, userModel.toEntity());
+      final savedTokens =
+          verify(() => local.saveTokens(captureAny())).captured.single
+              as AuthTokens;
+      expect(savedTokens.accessToken, 'access-123');
+      expect(savedTokens.refreshToken, 'refresh-456');
+      verify(() => local.cacheUser(userModel)).called(1);
+    });
+  });
+
+  group('register', () {
+    test('saves tokens, caches user, and returns the domain entity', () async {
+      when(() => remote.register(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            firstName: any(named: 'firstName'),
+            lastName: any(named: 'lastName'),
+          )).thenAnswer((_) async => loginResponse);
+      when(() => local.saveTokens(any())).thenAnswer((_) async {});
+      when(() => local.cacheUser(any())).thenAnswer((_) async {});
+
+      final user = await repository.register(
+        const RegisterParams(
+          email: 'coach@club.com',
+          password: 'password8',
+          firstName: 'Coach',
+          lastName: 'Carter',
+        ),
       );
 
       expect(user, userModel.toEntity());

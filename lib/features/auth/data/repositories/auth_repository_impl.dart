@@ -28,6 +28,21 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<User> register(RegisterParams params) async {
+    final response = await remote.register(
+      email: params.email,
+      password: params.password,
+      firstName: params.firstName,
+      lastName: params.lastName,
+    );
+    // Persist the session exactly like login() so the user stays authenticated
+    // without re-entering credentials.
+    await local.saveTokens(response.toTokens());
+    await local.cacheUser(response.user);
+    return response.user.toEntity();
+  }
+
+  @override
   Future<AuthTokens> refresh() async {
     final refreshToken = await local.readRefreshToken();
     if (refreshToken == null) {

@@ -177,6 +177,15 @@ const List<_MenuItem> _menuItems = <_MenuItem>[
     route: AppRoutes.adminPanel,
     allowedRoles: <UserRole>{UserRole.superAdmin},
   ),
+  _MenuItem(
+    group: _MenuGroup.administration,
+    icon: Icons.manage_accounts,
+    title: 'Usuarios registrados',
+    subtitle: 'Consulta las altas recientes y ajusta sus permisos',
+    accent: AppColors.info,
+    route: AppRoutes.adminUsers,
+    allowedRoles: <UserRole>{UserRole.superAdmin},
+  ),
 ];
 
 /// A labelled group of menu cards.

@@ -6,6 +6,7 @@ import 'core/routing/placeholder_page.dart';
 import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/main_menu_page.dart';
+import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 import 'features/clubs/presentation/pages/admin_panel_page.dart';
 import 'features/matches/presentation/models/court_view_args.dart';
@@ -14,11 +15,13 @@ import 'features/matches/presentation/pages/match_list_page.dart';
 import 'features/matches/presentation/pages/match_live_page.dart';
 import 'features/matches/presentation/providers/match_list_provider.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/users/presentation/pages/users_page.dart';
 
 /// Route paths used across the app. Centralized so navigation calls and guards
 /// never rely on stringly-typed literals scattered through the codebase.
 abstract final class AppRoutes {
   static const String login = '/login';
+  static const String register = '/register';
   static const String home = '/';
   static const String matchLive = '/matches/:id/live';
   static const String matchAnnotate = '/matches/:id/annotate';
@@ -28,6 +31,9 @@ abstract final class AppRoutes {
   static const String annotateEntry = '/matches/annotate';
   static const String spectateEntry = '/matches/spectate';
   static const String adminPanel = '/admin';
+
+  /// Registered-users management screen, restricted to SUPER_ADMIN (T-034).
+  static const String adminUsers = '/admin/users';
 
   static const String teams = '/teams';
   static const String players = '/players';
@@ -76,19 +82,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(authStateProvider);
       final loggedIn = auth.isAuthenticated;
-      final loggingIn = state.matchedLocation == AppRoutes.login;
+      final location = state.matchedLocation;
+
+      // Public routes reachable without a session: login and registration.
+      final isPublicRoute =
+          location == AppRoutes.login || location == AppRoutes.register;
 
       if (!loggedIn) {
-        return loggingIn ? null : AppRoutes.login;
+        return isPublicRoute ? null : AppRoutes.login;
       }
 
-      if (loggingIn) {
+      if (isPublicRoute) {
         return AppRoutes.home;
       }
 
       if (state.fullPath == AppRoutes.matchAnnotate) {
         final role = ref.read(currentUserProvider)?.role;
         if (role == null || !_annotationRoles.contains(role)) {
+          return AppRoutes.home;
+        }
+      }
+
+      // `/admin/users` is stricter than `/admin`: SUPER_ADMIN only (T-034).
+      if (state.fullPath == AppRoutes.adminUsers) {
+        final role = ref.read(currentUserProvider)?.role;
+        if (role != UserRole.superAdmin) {
           return AppRoutes.home;
         }
       }
@@ -107,6 +125,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.login,
         name: 'login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        name: 'register',
+        builder: (context, state) => const RegisterPage(),
       ),
       GoRoute(
         path: AppRoutes.home,
@@ -129,6 +152,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminPanel,
         name: 'adminPanel',
         builder: (context, state) => const AdminPanelPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminUsers,
+        name: 'adminUsers',
+        builder: (context, state) => const UsersPage(),
       ),
       GoRoute(
         path: AppRoutes.matchLive,

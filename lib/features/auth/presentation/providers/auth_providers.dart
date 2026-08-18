@@ -9,6 +9,7 @@ import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/usecases/register_usecase.dart';
 
 /// Concrete [AuthRepository], wired to the shared Dio client and secure token
 /// storage (reused from the core providers so login-saved tokens are the same
@@ -20,6 +21,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     remote: AuthRemoteDataSource(dio),
     local: AuthLocalDataSource(tokenStorage: tokenStorage),
   );
+});
+
+/// Use case: register a new account (Plan.md T-032).
+final registerUseCaseProvider = Provider<RegisterUseCase>((ref) {
+  return RegisterUseCase(ref.watch(authRepositoryProvider));
 });
 
 /// Lifecycle of the authentication flow surfaced to the UI.
@@ -76,6 +82,15 @@ class AuthNotifier extends Notifier<AuthState> {
       state =
           AuthState(status: AuthStatus.error, errorMessage: _messageFor(error));
     }
+  }
+
+  /// Reflects a completed registration in the session state.
+  ///
+  /// Registration already persisted the tokens and returned the new [user], so
+  /// this only flips the auth state to authenticated, which lets the router's
+  /// global guard forward the user into the app.
+  void completeRegistration(User user) {
+    state = AuthState(status: AuthStatus.authenticated, user: user);
   }
 
   /// Restores a previously cached session, if any (used on app start).

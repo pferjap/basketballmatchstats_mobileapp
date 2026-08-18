@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoop_analytics/app_router.dart';
+import 'package:hoop_analytics/core/models/paginated.dart';
 import 'package:hoop_analytics/core/theme/app_theme.dart';
 import 'package:hoop_analytics/features/auth/domain/entities/user.dart';
 import 'package:hoop_analytics/features/auth/domain/repositories/auth_repository.dart';
 import 'package:hoop_analytics/features/auth/presentation/providers/auth_providers.dart';
+import 'package:hoop_analytics/features/users/domain/entities/app_user.dart';
+import 'package:hoop_analytics/features/users/domain/repositories/user_repository.dart';
+import 'package:hoop_analytics/features/users/presentation/providers/users_providers.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _MockUserRepository extends Mock implements UserRepository {}
 
 User _user(UserRole role) => User(
       id: 'u1',
@@ -29,8 +35,25 @@ Future<ProviderContainer> _pumpApp(
   when(() => repository.getCurrentUser()).thenAnswer((_) async => null);
   when(() => repository.logout()).thenAnswer((_) async {});
 
+  final userRepository = _MockUserRepository();
+  when(() => userRepository.getUsers(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        search: any(named: 'search'),
+      )).thenAnswer(
+    (_) async => const Paginated<AppUser>(
+      items: <AppUser>[],
+      page: 1,
+      limit: 10,
+      total: 0,
+    ),
+  );
+
   final container = ProviderContainer(
-    overrides: [authRepositoryProvider.overrideWithValue(repository)],
+    overrides: [
+      authRepositoryProvider.overrideWithValue(repository),
+      userRepositoryProvider.overrideWithValue(userRepository),
+    ],
   );
   addTearDown(container.dispose);
 
@@ -150,5 +173,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_currentLocation(container), AppRoutes.login);
+  });
+
+  testWidgets('unauthenticated user can reach the public /register route',
+      (tester) async {
+    final container =
+        await _pumpApp(tester, initialLocation: AppRoutes.register);
+
+    expect(_currentLocation(container), AppRoutes.register);
+    expect(find.text('Crea tu cuenta'), findsOneWidget);
+  });
+
+  testWidgets('authenticated user on /register is sent home', (tester) async {
+    final container = await _pumpApp(
+      tester,
+      authenticatedAs: UserRole.viewer,
+      initialLocation: AppRoutes.register,
+    );
+
+    expect(_currentLocation(container), AppRoutes.home);
+  });
+
+  testWidgets('viewer is blocked from /admin/users and sent home',
+      (tester) async {
+    final container = await _pumpApp(
+      tester,
+      authenticatedAs: UserRole.viewer,
+      initialLocation: AppRoutes.adminUsers,
+    );
+
+    expect(_currentLocation(container), AppRoutes.home);
+  });
+
+  testWidgets('club admin is blocked from /admin/users (super admin only)',
+      (tester) async {
+    final container = await _pumpApp(
+      tester,
+      authenticatedAs: UserRole.clubAdmin,
+      initialLocation: AppRoutes.adminUsers,
+    );
+
+    expect(_currentLocation(container), AppRoutes.home);
+  });
+
+  testWidgets('super admin can open /admin/users', (tester) async {
+    final container = await _pumpApp(
+      tester,
+      authenticatedAs: UserRole.superAdmin,
+      initialLocation: AppRoutes.adminUsers,
+    );
+
+    expect(_currentLocation(container), AppRoutes.adminUsers);
+    expect(find.text('Usuarios registrados'), findsOneWidget);
   });
 }
