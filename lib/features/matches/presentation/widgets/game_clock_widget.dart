@@ -35,6 +35,15 @@ class _GameClockWidgetState extends State<GameClockWidget> {
   }
 
   @override
+  void didUpdateWidget(GameClockWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSeconds != oldWidget.initialSeconds && !_running) {
+      setState(() => _remaining = widget.initialSeconds);
+      widget.onTick?.call(_formatted);
+    }
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();

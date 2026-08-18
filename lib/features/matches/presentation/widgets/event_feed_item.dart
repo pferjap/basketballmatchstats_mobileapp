@@ -79,7 +79,7 @@ EventVisual eventVisualFor(MatchEvent event) {
     case EventType.foulPersonal:
       return const EventVisual(
         icon: Icons.front_hand,
-        color: AppColors.primary,
+        color: AppColors.error,
         title: 'Falta personal',
       );
     case EventType.foulTechnical:
@@ -103,7 +103,7 @@ EventVisual eventVisualFor(MatchEvent event) {
     case EventType.freeThrowAwarded:
       return const EventVisual(
         icon: Icons.sports,
-        color: AppColors.primary,
+        color: AppColors.error,
         title: 'Tiro libre concedido',
       );
     case EventType.substitution:
