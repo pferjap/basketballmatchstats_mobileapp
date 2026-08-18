@@ -593,89 +593,187 @@
 
 ### T-027: Implementar formulario de creación/edición de Club
 
-**Objetivo:** Crear el formulario modal o pantalla para crear y editar clubs.
+**Objetivo:** Crear la pantalla de formulario para crear y editar clubs con layout 20%/80%.
+**Contrato API (fuente: `create-club.dto.ts`):**
+```
+name:  string  (required, 2–120 chars)
+city:  string  (optional, max 120 chars)
+```
+**Diseño a implementar (layout vertical):**
+- **Zona superior (20% de la pantalla) — Avatar / Logo:**
+  - Centrado horizontal y verticalmente en la franja.
+  - **Por defecto (sin logo):** Avatar circular grande (~120px) con fondo `AppColors.surface` y el icono `Icons.shield_outlined` (el mismo que la tab "Clubs" del panel de administración) en `AppColors.textSecondary`.
+  - **Con logo personalizado:** El avatar muestra la imagen subida, recortada en círculo con `ClipOval`.
+  - **Al pulsar el avatar:** Abre selector de imagen del dispositivo (`image_picker`). La imagen seleccionada se muestra en preview inmediato (optimistic UI) y se sube al backend tras crear/guardar la entidad (`POST /clubs/:id/logo`, ver `Plan_api.md` §1.5). Límites: ≤2 MB, formatos JPEG/PNG/WebP, redimensionado a 512×512 en servidor.
+  - **En modo editar:** Si el club ya tiene `logoUrl`, el avatar lo muestra con `CachedNetworkImage`; al pulsar se reemplaza.
+  - Debajo del avatar: texto "Toca para añadir logo" (gris, 12sp) que desaparece cuando hay imagen.
+- **Zona inferior (80% restante) — Campos del formulario:**
+  - Scroll vertical (`SingleChildScrollView`) para acomodar teclado.
+  - **Campo "Nombre del club"** — `TextFormField`, obligatorio, hint "Ej. Tigres Basket", icono `Icons.shield` a la izquierda. Validación: no vacío, 2–120 caracteres.
+  - **Campo "Ciudad"** — `TextFormField`, opcional, hint "Ej. Madrid", icono `Icons.location_city` a la izquierda. Validación: max 120 caracteres.
+  - **Separador** de 24px.
+  - **Botón "Guardar"** — Full-width, fondo azul (`AppColors.info`), texto blanco bold, border-radius 12px. Spinner mientras se envía.
+  - **Botón "Cancelar"** — Full-width, fondo transparente, borde gris, texto gris. Vuelve a la lista.
+  - Modo crear: campos vacíos, título "Crear club". Modo editar: campos pre-rellenados, título "Editar club".
 **Acciones:**
 1. Crear `features/clubs/presentation/pages/club_form_page.dart`:
-   - Modo crear (campos vacíos) y modo editar (campos pre-rellenados).
-   - Campos: nombre del club (required), ciudad, país, año de fundación, logo (image picker placeholder).
-   - Validación de campos (nombre no vacío, año válido).
-   - Botón "Guardar" (azul) y "Cancelar".
+   - Recibe `Club?` para modo editar (null = crear).
+   - Layout con `Column`: `SizedBox` del 20% de `MediaQuery.of(context).size.height` para el avatar, `Expanded` para el formulario.
+   - Widget de avatar reutilizable `EntityAvatarPicker` en `core/widgets/` (reutilizado por T-028, T-029).
 2. Crear `features/clubs/presentation/providers/club_form_provider.dart`:
    - Gestiona estado del formulario, validación y submit.
-   - Al crear: `POST /clubs` → en éxito, volver a la lista y refrescar.
-   - Al editar: `PUT /clubs/:id` → en éxito, volver a la lista y refrescar.
-3. Conectar botón "+ Crear club" de T-026 con la apertura del formulario en modo crear.
-4. Conectar opción "Editar" del menú contextual "⋮" con la apertura del formulario en modo editar.
-**Resultado:** CRUD completo de clubs (crear, leer lista, editar, eliminar).
+   - Al crear: `POST /clubs` → en éxito, si hay imagen seleccionada `POST /clubs/:id/logo` → volver a la lista y refrescar.
+   - Al editar: `PUT /clubs/:id` → si la imagen cambió `POST /clubs/:id/logo` → volver a la lista y refrescar.
+3. Crear `core/widgets/entity_avatar_picker.dart`:
+   - Props: `iconData` (icono por defecto), `currentImageUrl` (logo actual o null), `onImageSelected` callback.
+   - Renderiza avatar circular con fallback a icono, overlay de cámara al pulsar, integración con `image_picker`.
+4. Conectar botón "+ Crear club" de T-026 con la apertura del formulario en modo crear.
+5. Conectar opción "Editar" del menú contextual "⋮" con la apertura del formulario en modo editar.
+**Resultado:** CRUD completo de clubs con avatar/logo interactivo y campos alineados al DTO real del backend.
 
 ---
 
 ### T-028: Implementar tab Equipos en Panel de Administración
 
-**Objetivo:** Crear la pestaña de Equipos dentro del panel de administración con el mismo patrón visual que Clubs.
+**Objetivo:** Crear la pestaña de Equipos dentro del panel de administración con el mismo patrón visual que Clubs, incluyendo formulario de creación/edición con layout 20%/80%.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
-**Diseño a implementar:**
+**Contrato API (fuente: `create-team.dto.ts`):**
+```
+name:    string  (required, 2–120 chars)
+clubId:  UUID    (required)
+```
+**Diseño a implementar (tab de listado):**
 - Mismo layout que la tab Clubs:
   - Header: "Equipos" + botón "+ Crear equipo" (azul).
   - Barra de búsqueda "Buscar equipo..." + botón Filtros.
   - Cards de equipo: logo circular + nombre del equipo (bold) + icono escudo + nombre del club al que pertenece (gris) + categoría (gris) + menú "⋮" + botón eliminar (rojo).
   - Paginación footer.
+**Diseño a implementar (formulario crear/editar equipo — layout vertical):**
+- **Zona superior (20% de la pantalla) — Avatar / Logo:**
+  - Avatar circular grande (~120px) con fondo `AppColors.surface` y el icono `Icons.groups_outlined` (el mismo que la tab "Equipos" del panel de administración) en `AppColors.textSecondary`.
+  - Al pulsar: abre selector de imagen. Tras crear/guardar el equipo, sube la imagen con `POST /teams/:id/logo` (ver `Plan_api.md` §1.5). Límites: ≤2 MB, JPEG/PNG/WebP, 512×512 en servidor.
+  - En modo editar con `logoUrl`: muestra la imagen actual con `CachedNetworkImage`.
+  - Texto inferior: "Toca para añadir logo" (gris, 12sp), oculto cuando hay imagen.
+- **Zona inferior (80% restante) — Campos del formulario:**
+  - **Campo "Nombre del equipo"** — `TextFormField`, obligatorio, hint "Ej. Tigres U-18", icono `Icons.groups` a la izquierda. Validación: no vacío, 2–120 caracteres.
+  - **Campo "Club"** — `DropdownButtonFormField`, obligatorio. Lista desplegable con los clubs existentes (cargados vía `GetClubsUseCase`). Muestra logo + nombre del club en cada opción. Validación: selección obligatoria.
+  - **Separador** de 24px.
+  - **Botón "Guardar"** — Full-width, fondo azul, spinner al enviar.
+  - **Botón "Cancelar"** — Full-width, borde gris.
+  - Título: "Crear equipo" / "Editar equipo" según modo.
 **Acciones:**
 1. Crear `features/teams/presentation/pages/teams_tab.dart` (reutiliza `admin_search_bar`, `pagination_footer`, `admin_section_header`).
 2. Crear `features/teams/presentation/widgets/team_card.dart` (logo + nombre + club + categoría + acciones).
 3. Crear `features/teams/presentation/providers/teams_admin_provider.dart`.
 4. Crear `features/teams/presentation/pages/team_form_page.dart`:
-   - Campos: nombre del equipo (required), club (dropdown de clubs existentes), categoría, logo.
-   - Modo crear y modo editar.
-5. Crear `features/teams/presentation/providers/team_form_provider.dart`.
+   - Reutiliza `EntityAvatarPicker` de T-027 con `iconData: Icons.groups_outlined`.
+   - Layout 20%/80% idéntico al de club_form_page.
+   - Campos alineados al `CreateTeamDto`: nombre y club (dropdown).
+5. Crear `features/teams/presentation/providers/team_form_provider.dart`:
+   - Al crear: `POST /teams` → si hay imagen `POST /teams/:id/logo` → refrescar lista.
 6. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
-**Resultado:** Tab Equipos funcional con CRUD completo dentro del panel de administración.
+**Resultado:** Tab Equipos funcional con CRUD completo y formulario con avatar/logo interactivo.
 
 ---
 
 ### T-029: Implementar tab Jugadores en Panel de Administración
 
-**Objetivo:** Crear la pestaña de Jugadores dentro del panel de administración con el mismo patrón visual.
+**Objetivo:** Crear la pestaña de Jugadores dentro del panel de administración con el mismo patrón visual, incluyendo formulario de creación/edición con layout 20%/80%.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
-**Diseño a implementar:**
+**Contrato API (fuente: `create-player.dto.ts`):**
+```
+firstName:     string          (required, 1–100 chars)
+lastName:      string          (required, 1–100 chars)
+jerseyNumber:  int             (optional, 0–99)
+position:      PlayerPosition  (optional, enum: PG, SG, SF, PF, C)
+teamId:        UUID            (required)
+```
+**Diseño a implementar (tab de listado):**
 - Mismo layout que las tabs anteriores:
   - Header: "Jugadores" + botón "+ Crear jugador" (azul).
   - Barra de búsqueda "Buscar jugador..." + botón Filtros.
   - Cards de jugador: foto circular + nombre completo (bold) + dorsal (#número) + posición (ej. "Base", "Alero") + icono equipo + nombre del equipo (gris) + menú "⋮" + botón eliminar (rojo).
   - Paginación footer.
+**Diseño a implementar (formulario crear/editar jugador — layout vertical):**
+- **Zona superior (20% de la pantalla) — Avatar / Foto:**
+  - Avatar circular grande (~120px) con fondo `AppColors.surface` y el icono `Icons.person_outline` (el mismo que la tab "Jugadores" del panel de administración) en `AppColors.textSecondary`.
+  - Al pulsar: abre selector de imagen. Tras crear/guardar el jugador, sube la foto con `POST /players/:id/photo` (ver `Plan_api.md` §1.5). Límites: ≤2 MB, JPEG/PNG/WebP, 512×512 en servidor.
+  - En modo editar con `photoUrl`: muestra la foto actual con `CachedNetworkImage`.
+  - Texto inferior: "Toca para añadir foto" (gris, 12sp), oculto cuando hay imagen.
+- **Zona inferior (80% restante) — Campos del formulario:**
+  - **Campo "Nombre"** — `TextFormField`, obligatorio, hint "Ej. Álvaro", icono `Icons.person` a la izquierda. Validación: no vacío, 1–100 caracteres.
+  - **Campo "Apellidos"** — `TextFormField`, obligatorio, hint "Ej. Ruiz García", icono `Icons.person_outline` a la izquierda. Validación: no vacío, 1–100 caracteres.
+  - **Campo "Dorsal"** — `TextFormField`, opcional, hint "Ej. 23", icono `Icons.numbers` a la izquierda, `keyboardType: TextInputType.number`. Validación: entero 0–99.
+  - **Campo "Posición"** — `DropdownButtonFormField`, opcional. Opciones: "Base (PG)", "Escolta (SG)", "Alero (SF)", "Ala-Pívot (PF)", "Pívot (C)". Icono `Icons.sports_basketball` a la izquierda.
+  - **Campo "Equipo"** — `DropdownButtonFormField`, obligatorio. Lista desplegable con los equipos existentes (cargados vía `GetTeamsUseCase`). Muestra logo + nombre del equipo en cada opción. Validación: selección obligatoria.
+  - **Separador** de 24px.
+  - **Botón "Guardar"** — Full-width, fondo azul, spinner al enviar.
+  - **Botón "Cancelar"** — Full-width, borde gris.
+  - Título: "Crear jugador" / "Editar jugador" según modo.
 **Acciones:**
 1. Crear `features/players/presentation/pages/players_tab.dart` (reutiliza widgets compartidos).
 2. Crear `features/players/presentation/widgets/player_card.dart` (foto + nombre + dorsal + posición + equipo + acciones).
 3. Crear `features/players/presentation/providers/players_admin_provider.dart`.
 4. Crear `features/players/presentation/pages/player_form_page.dart`:
-   - Campos: nombre, apellido, dorsal (required), posición (dropdown: PG, SG, SF, PF, C), equipo (dropdown), fecha nacimiento, altura, peso, foto.
-   - Modo crear y modo editar.
-5. Crear `features/players/presentation/providers/player_form_provider.dart`.
+   - Reutiliza `EntityAvatarPicker` de T-027 con `iconData: Icons.person_outline`.
+   - Layout 20%/80% idéntico al de club_form_page.
+   - Campos alineados al `CreatePlayerDto`: nombre, apellidos, dorsal, posición, equipo.
+5. Crear `features/players/presentation/providers/player_form_provider.dart`:
+   - Al crear: `POST /players` → si hay imagen `POST /players/:id/photo` → refrescar lista.
 6. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
-**Resultado:** Tab Jugadores funcional con CRUD completo dentro del panel de administración.
+**Resultado:** Tab Jugadores funcional con CRUD completo y formulario con foto/avatar interactivo.
 
 ---
 
 ### T-030: Implementar tab Partidos en Panel de Administración
 
-**Objetivo:** Crear la pestaña de Partidos dentro del panel de administración con CRUD para programar y gestionar partidos.
+**Objetivo:** Crear la pestaña de Partidos dentro del panel de administración con CRUD para programar y gestionar partidos, incluyendo formulario de creación/edición con layout 20%/80%.
 **Referencia visual:** `docs/images/Create_and_list_clubs_teams_players_matches.png` (misma estructura de lista)
-**Diseño a implementar:**
+**Contrato API (fuente: `create-match.dto.ts`):**
+```
+clubId:       UUID         (required)
+homeTeamId:   UUID         (required)
+awayTeamId:   UUID         (required)
+scheduledAt:  ISO 8601     (required)
+```
+**Diseño a implementar (tab de listado):**
 - Mismo layout que las tabs anteriores:
   - Header: "Partidos" + botón "+ Crear partido" (azul).
   - Barra de búsqueda "Buscar partido..." + botón Filtros.
   - Cards de partido: icono de estado (badge: "Programado" azul, "En curso" verde, "Finalizado" gris) + equipos "Equipo Local vs Equipo Visitante" (bold) + icono competición + nombre de la competición (gris) + fecha y hora programada (gris) + menú "⋮" + botón eliminar (rojo).
   - Paginación footer.
+**Diseño a implementar (formulario crear/editar partido — layout vertical):**
+- **Zona superior (20% de la pantalla) — Avatares de los dos equipos:**
+  - A diferencia de las demás entidades, esta zona muestra **dos avatares** lado a lado representando el equipo local y el visitante, con un texto "VS" centrado entre ellos.
+  - **Antes de seleccionar equipos:** Dos avatares circulares (~100px cada uno) con fondo `AppColors.surface` y el icono `Icons.shield_outlined` en `AppColors.textSecondary`, separados por "VS" en texto gris. Debajo de cada avatar: "Equipo local" / "Equipo visitante" (gris, 12sp).
+  - **Tras seleccionar equipos:** Cada avatar se actualiza automáticamente con el `logoUrl` del equipo seleccionado (si lo tiene) o mantiene el icono `Icons.shield_outlined` como fallback. Debajo de cada avatar aparece el nombre del equipo en blanco bold.
+  - Los avatares en esta zona **no son pulsables** (no suben imagen); solo reflejan la selección hecha en los dropdowns de abajo.
+- **Zona inferior (80% restante) — Campos del formulario:**
+  - **Campo "Club"** — `DropdownButtonFormField`, obligatorio. Lista desplegable con los clubs existentes. Icono `Icons.shield` a la izquierda. Al seleccionar un club, los dropdowns de equipo local y visitante se filtran para mostrar solo equipos de ese club.
+  - **Campo "Equipo local"** — `DropdownButtonFormField`, obligatorio. Lista desplegable filtrada por el club seleccionado. Muestra logo + nombre del equipo en cada opción. Icono `Icons.home` a la izquierda. Al seleccionar, actualiza el avatar izquierdo de la zona superior.
+  - **Campo "Equipo visitante"** — `DropdownButtonFormField`, obligatorio. Misma lista que equipo local pero excluyendo el equipo ya seleccionado como local. Icono `Icons.flight` a la izquierda. Al seleccionar, actualiza el avatar derecho de la zona superior. Validación: no puede ser igual al equipo local.
+  - **Campo "Fecha y hora"** — `TextFormField` de solo lectura + `showDatePicker` y `showTimePicker` al pulsar. Obligatorio. Formato: "dd/MM/yyyy HH:mm". Icono `Icons.calendar_today` a la izquierda. Se envía como ISO 8601 (`scheduledAt`).
+  - **Separador** de 24px.
+  - **Botón "Guardar"** — Full-width, fondo azul, spinner al enviar.
+  - **Botón "Cancelar"** — Full-width, borde gris.
+  - Título: "Crear partido" / "Editar partido" según modo.
 **Acciones:**
 1. Crear `features/matches/presentation/pages/matches_tab.dart` (reutiliza widgets compartidos).
 2. Crear `features/matches/presentation/widgets/match_admin_card.dart` (estado + equipos + competición + fecha + acciones).
 3. Crear `features/matches/presentation/providers/matches_admin_provider.dart`.
 4. Crear `features/matches/presentation/pages/match_form_page.dart`:
-   - Campos: equipo local (dropdown), equipo visitante (dropdown), competición (dropdown), temporada (dropdown), fecha y hora (date/time picker), lugar/cancha.
-   - Modo crear y modo editar.
-5. Crear `features/matches/presentation/providers/match_form_provider.dart`.
-6. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
-**Resultado:** Tab Partidos funcional con CRUD completo dentro del panel de administración.
+   - Layout 20%/80%: zona superior con widget `MatchTeamsPreview` que muestra los dos avatares circulares + "VS".
+   - Campos alineados al `CreateMatchDto`: club, equipo local, equipo visitante, fecha/hora.
+   - Dropdown de equipos se filtra dinámicamente cuando cambia el club seleccionado.
+   - Equipo visitante excluye al equipo ya seleccionado como local.
+5. Crear `features/matches/presentation/widgets/match_teams_preview.dart`:
+   - Widget que recibe `Team? homeTeam` y `Team? awayTeam`.
+   - Renderiza dos avatares circulares con fallback a `Icons.shield_outlined`, "VS" central, y nombres de equipo debajo.
+6. Crear `features/matches/presentation/providers/match_form_provider.dart`:
+   - Estado: `selectedClubId`, `selectedHomeTeamId`, `selectedAwayTeamId`, `scheduledAt`, `availableTeams` (filtrados por club).
+   - Al crear: `POST /matches` → refrescar lista.
+7. Integrar en el `TabBarView` del `admin_panel_page.dart` (T-026).
+**Resultado:** Tab Partidos funcional con CRUD completo y formulario con preview visual de los dos equipos enfrentados.
 
 ---
 
@@ -965,7 +1063,7 @@ administración.
 | 5 | T-017 | Sala de retransmisión en directo |
 | 6 | T-018 a T-021 | Pantalla de anotación (la más compleja) |
 | 7 | T-022 | Listado y selección de partidos |
-| 8 | T-023 a T-031 | Panel de Administración (CRUD clubs, equipos, jugadores, partidos) + Settings |
+| 8 | T-023 a T-031 | Panel de Administración (CRUD clubs, equipos, jugadores, partidos) + Settings. Formularios con layout 20%/80% (avatar/logo + campos DTO), subida de imagen vía `Plan_api.md` §1.5 |
 | 9 | T-032 a T-034 | Registro de usuarios y gestión de privilegios |
 | 10 | T-035 a T-036 | Observabilidad y UX polish |
 | 11 | T-037 a T-039 | Testing y CI/CD |
