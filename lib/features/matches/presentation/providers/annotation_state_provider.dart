@@ -52,6 +52,7 @@ class AnnotationState {
     this.currentStep = 1,
     this.isRecording = false,
     this.errorMessage,
+    this.resumeClockSeconds,
   });
 
   final String homeTeamId;
@@ -75,6 +76,10 @@ class AnnotationState {
   final int currentStep;
   final bool isRecording;
   final String? errorMessage;
+
+  /// Clock seconds to resume from when re-entering the annotation screen.
+  /// `null` means use the default period duration.
+  final int? resumeClockSeconds;
 
   bool get isAnnotatingHome => annotatingTeamId == homeTeamId;
 
@@ -127,6 +132,7 @@ class AnnotationState {
     int? currentStep,
     bool? isRecording,
     String? errorMessage,
+    int? resumeClockSeconds,
     bool clearSelection = false,
     bool clearError = false,
   }) {
@@ -147,6 +153,7 @@ class AnnotationState {
       currentStep: currentStep ?? this.currentStep,
       isRecording: isRecording ?? this.isRecording,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      resumeClockSeconds: resumeClockSeconds ?? this.resumeClockSeconds,
     );
   }
 }
@@ -213,6 +220,18 @@ class AnnotationController
           );
         }).toList(growable: false);
         state = state.copyWith(events: loaded);
+
+        // Resume clock from the most recent event's gameClock.
+        final latestClock = page.items.first.gameClock;
+        final parts = latestClock.split(':');
+        if (parts.length == 2) {
+          final minutes = int.tryParse(parts[0]) ?? 0;
+          final seconds = int.tryParse(parts[1]) ?? 0;
+          state = state.copyWith(
+            resumeClockSeconds: minutes * 60 + seconds,
+          );
+          _gameClock = latestClock;
+        }
       }
     } catch (_) {
       // Best-effort.

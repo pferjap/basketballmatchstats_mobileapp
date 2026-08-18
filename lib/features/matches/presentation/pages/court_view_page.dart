@@ -107,7 +107,8 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
             awayScore: state.awayScore,
             homeFouls: state.homeFouls,
             awayFouls: state.awayFouls,
-            clockSeconds: _args.periodDurationSeconds,
+            clockSeconds: state.resumeClockSeconds ??
+                _args.periodDurationSeconds,
             clockKey: ValueKey<int>(state.currentPeriod),
             onClockTick: controller.setGameClock,
           ),
