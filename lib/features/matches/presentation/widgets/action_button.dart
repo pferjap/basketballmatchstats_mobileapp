@@ -58,7 +58,7 @@ class ActionButton extends StatelessWidget {
               minWidth: kActionButtonSize,
             ),
             padding: const EdgeInsets.symmetric(
-              vertical: kSpacingM,
+              vertical: kSpacingS,
               horizontal: kSpacingS,
             ),
             decoration: BoxDecoration(
@@ -68,8 +68,8 @@ class ActionButton extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(icon, color: color, size: 30),
-                const SizedBox(height: kSpacingS),
+                Icon(icon, color: color, size: 24),
+                const SizedBox(height: kSpacingXS),
                 Text(
                   label,
                   textAlign: TextAlign.center,

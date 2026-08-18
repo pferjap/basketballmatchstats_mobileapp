@@ -29,9 +29,11 @@ class ActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(
         horizontal: kSpacingM,
-        vertical: kSpacingS,
+        vertical: 2,
       ),
       children: <Widget>[
         for (final category in AnnotationCategory.values)
@@ -64,7 +66,7 @@ class _Section extends StatelessWidget {
     return Column(
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: kSpacingS),
+          padding: const EdgeInsets.symmetric(vertical: kSpacingXS),
           child: Row(
             children: <Widget>[
               const Expanded(child: Divider(color: AppColors.divider)),

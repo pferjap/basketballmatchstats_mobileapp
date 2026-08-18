@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/ws_manager.dart';
 import '../../data/datasources/match_ws_datasource.dart';
+import '../../domain/entities/event_type.dart';
 import '../../domain/entities/match_event.dart';
 import '../../domain/entities/match_score.dart';
 import '../../domain/repositories/match_repository.dart';
@@ -21,6 +22,8 @@ class LiveMatchState {
     this.isLoadingEarlier = false,
     this.hasMoreEarlier = true,
     this.errorMessage,
+    this.homeTeamId = '',
+    this.awayTeamId = '',
   });
 
   /// Latest scoreboard, or `null` until the initial load completes.
@@ -44,6 +47,9 @@ class LiveMatchState {
   /// User-facing error message from the initial load, if any.
   final String? errorMessage;
 
+  final String homeTeamId;
+  final String awayTeamId;
+
   LiveMatchState copyWith({
     MatchScore? score,
     List<MatchEvent>? events,
@@ -52,6 +58,8 @@ class LiveMatchState {
     bool? isLoadingEarlier,
     bool? hasMoreEarlier,
     String? errorMessage,
+    String? homeTeamId,
+    String? awayTeamId,
   }) {
     return LiveMatchState(
       score: score ?? this.score,
@@ -61,6 +69,8 @@ class LiveMatchState {
       isLoadingEarlier: isLoadingEarlier ?? this.isLoadingEarlier,
       hasMoreEarlier: hasMoreEarlier ?? this.hasMoreEarlier,
       errorMessage: errorMessage,
+      homeTeamId: homeTeamId ?? this.homeTeamId,
+      awayTeamId: awayTeamId ?? this.awayTeamId,
     );
   }
 
@@ -74,7 +84,9 @@ class LiveMatchState {
           other.isLoading == isLoading &&
           other.isLoadingEarlier == isLoadingEarlier &&
           other.hasMoreEarlier == hasMoreEarlier &&
-          other.errorMessage == errorMessage;
+          other.errorMessage == errorMessage &&
+          other.homeTeamId == homeTeamId &&
+          other.awayTeamId == awayTeamId;
 
   @override
   int get hashCode => Object.hash(
@@ -85,6 +97,8 @@ class LiveMatchState {
     isLoadingEarlier,
     hasMoreEarlier,
     errorMessage,
+    homeTeamId,
+    awayTeamId,
   );
 }
 
@@ -129,19 +143,37 @@ class LiveMatchController
       await _ws.connect();
       _ws.joinMatch(matchId);
 
-      // Statistics endpoint may not be available — score will be derived from
-      // events in a future phase; for now, gracefully default to null.
+      // Load match details for period/gameClock and team IDs.
+      String homeTeamId = '';
+      String awayTeamId = '';
+      int currentPeriod = 1;
+      String gameClock = '00:00';
+      try {
+        final match = await _repository.getMatch(matchId);
+        homeTeamId = match.homeTeamId;
+        awayTeamId = match.awayTeamId;
+      } catch (_) {
+        // Best-effort.
+      }
+
+      // Try dedicated statistics endpoint first.
       MatchScore? score;
       try {
         final statistics = await _repository.getMatchStatistics(matchId);
         score = statistics.score;
       } catch (_) {
-        // Statistics unavailable; proceed without score.
+        // Statistics unavailable; derive from events below.
       }
 
       final page = await _repository.getMatchEvents(matchId, limit: 50);
       final events = _sorted(page.items);
       _lastEventAt = events.isNotEmpty ? events.first.createdAt : null;
+
+      // Derive score from events when statistics endpoint is unavailable.
+      if (score == null && homeTeamId.isNotEmpty) {
+        score = _computeScore(matchId, events, homeTeamId, awayTeamId,
+            currentPeriod, gameClock);
+      }
 
       _setState(
         state.copyWith(
@@ -149,6 +181,8 @@ class LiveMatchController
           events: events,
           isLoading: false,
           hasMoreEarlier: page.hasMore,
+          homeTeamId: homeTeamId,
+          awayTeamId: awayTeamId,
         ),
       );
     } catch (error) {
@@ -195,7 +229,12 @@ class LiveMatchController
     if (_lastEventAt == null || event.createdAt.isAfter(_lastEventAt!)) {
       _lastEventAt = event.createdAt;
     }
-    _setState(state.copyWith(events: merged));
+    // Recompute score from all events.
+    final score = state.homeTeamId.isNotEmpty
+        ? _computeScore(arg, merged, state.homeTeamId, state.awayTeamId,
+            state.score?.currentPeriod ?? 1, state.score?.gameClock ?? '00:00')
+        : state.score;
+    _setState(state.copyWith(events: merged, score: score));
   }
 
   void _onConnection(WsConnectionState next) {
@@ -245,6 +284,49 @@ class LiveMatchController
     final sorted = <MatchEvent>[...events]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sorted;
+  }
+
+  /// Derives a [MatchScore] by aggregating POINTS_MADE events.
+  MatchScore _computeScore(
+    String matchId,
+    List<MatchEvent> events,
+    String homeTeamId,
+    String awayTeamId,
+    int period,
+    String gameClock,
+  ) {
+    int homeScore = 0;
+    int awayScore = 0;
+    int maxPeriod = period;
+    String latestClock = gameClock;
+
+    for (final event in events) {
+      if (event.eventType == EventType.pointsMade) {
+        final points = (event.metadata?['points'] as num?)?.toInt() ?? 2;
+        if (event.teamId == homeTeamId) {
+          homeScore += points;
+        } else if (event.teamId == awayTeamId) {
+          awayScore += points;
+        }
+      }
+      if (event.period > maxPeriod) {
+        maxPeriod = event.period;
+      }
+    }
+
+    // Use the most recent event's clock and period.
+    if (events.isNotEmpty) {
+      latestClock = events.first.gameClock;
+      maxPeriod = events.first.period;
+    }
+
+    return MatchScore(
+      matchId: matchId,
+      homeTeamScore: homeScore,
+      awayTeamScore: awayScore,
+      currentPeriod: maxPeriod,
+      gameClock: latestClock,
+    );
   }
 
   void _setState(LiveMatchState next) {

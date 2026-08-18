@@ -112,12 +112,11 @@ class MatchLivePage extends ConsumerWidget {
           ),
           const Divider(color: AppColors.divider, height: 1),
           Expanded(
-            child: _FeedArea(state: state, info: info),
-          ),
-          _LoadEarlierButton(
-            isLoading: state.isLoadingEarlier,
-            enabled: state.hasMoreEarlier && !state.isLoadingEarlier,
-            onPressed: controller.loadEarlier,
+            child: _FeedArea(
+              state: state,
+              info: info,
+              onLoadMore: controller.loadEarlier,
+            ),
           ),
         ],
       ),
@@ -125,23 +124,59 @@ class MatchLivePage extends ConsumerWidget {
   }
 }
 
-class _FeedArea extends StatelessWidget {
-  const _FeedArea({required this.state, required this.info});
+class _FeedArea extends StatefulWidget {
+  const _FeedArea({
+    required this.state,
+    required this.info,
+    required this.onLoadMore,
+  });
 
   final LiveMatchState state;
   final LiveMatchArgs info;
+  final VoidCallback onLoadMore;
+
+  @override
+  State<_FeedArea> createState() => _FeedAreaState();
+}
+
+class _FeedAreaState extends State<_FeedArea> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 200 &&
+        widget.state.hasMoreEarlier &&
+        !widget.state.isLoadingEarlier) {
+      widget.onLoadMore();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (state.isLoading) {
+    if (widget.state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (state.errorMessage != null && state.events.isEmpty) {
+    if (widget.state.errorMessage != null && widget.state.events.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(kSpacingL),
           child: Text(
-            state.errorMessage!,
+            widget.state.errorMessage!,
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.textSecondary),
           ),
@@ -149,60 +184,12 @@ class _FeedArea extends StatelessWidget {
       );
     }
     return PlayByPlayFeed(
-      events: state.events,
-      homeTeamId: info.homeTeamId,
-      awayTeamId: info.awayTeamId,
-      homeTeamName: info.homeTeamName,
-      awayTeamName: info.awayTeamName,
-    );
-  }
-}
-
-class _LoadEarlierButton extends StatelessWidget {
-  const _LoadEarlierButton({
-    required this.isLoading,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  final bool isLoading;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.all(kSpacingM),
-        child: SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: enabled ? onPressed : null,
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.info),
-              padding: const EdgeInsets.symmetric(vertical: kSpacingM),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_downward, color: AppColors.info),
-            label: const Text(
-              'Cargar acciones anteriores',
-              style: TextStyle(
-                color: AppColors.info,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
+      events: widget.state.events,
+      homeTeamId: widget.info.homeTeamId,
+      awayTeamId: widget.info.awayTeamId,
+      homeTeamName: widget.info.homeTeamName,
+      awayTeamName: widget.info.awayTeamName,
+      controller: _scrollController,
     );
   }
 }

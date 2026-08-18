@@ -82,7 +82,6 @@ void main() {
     expect(find.text('72'), findsWidgets);
     expect(find.text('Canasta de 2 puntos'), findsOneWidget);
     expect(find.text('#7 Carlos Martínez'), findsOneWidget);
-    expect(find.text('Cargar acciones anteriores'), findsOneWidget);
   });
 
   testWidgets('shows a spinner while the initial load is in flight',

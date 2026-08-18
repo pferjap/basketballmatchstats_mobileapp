@@ -112,12 +112,6 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
             onClockTick: controller.setGameClock,
           ),
           _TabHeader(controller: _tabController),
-          _TeamToggle(
-            home: _args.home,
-            away: _args.away,
-            annotatingTeamId: state.annotatingTeamId,
-            onTeamChanged: controller.setAnnotatingTeam,
-          ),
           const Divider(color: AppColors.divider, height: 1),
           Expanded(
             child: TabBarView(
@@ -126,6 +120,10 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
                 _AnnotateTab(
                   matchId: widget.matchId,
                   annotatingTeam: _annotatingTeam,
+                  home: _args.home,
+                  away: _args.away,
+                  annotatingTeamId: state.annotatingTeamId,
+                  onTeamChanged: controller.setAnnotatingTeam,
                 ),
                 AnnotationHistoryTab(
                   events: state.events,
@@ -289,10 +287,21 @@ class _ToggleChip extends StatelessWidget {
 }
 
 class _AnnotateTab extends ConsumerWidget {
-  const _AnnotateTab({required this.matchId, required this.annotatingTeam});
+  const _AnnotateTab({
+    required this.matchId,
+    required this.annotatingTeam,
+    required this.home,
+    required this.away,
+    required this.annotatingTeamId,
+    required this.onTeamChanged,
+  });
 
   final String matchId;
   final CourtTeam annotatingTeam;
+  final CourtTeam home;
+  final CourtTeam away;
+  final String annotatingTeamId;
+  final ValueChanged<String> onTeamChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -301,6 +310,12 @@ class _AnnotateTab extends ConsumerWidget {
 
     return Column(
       children: <Widget>[
+        _TeamToggle(
+          home: home,
+          away: away,
+          annotatingTeamId: annotatingTeamId,
+          onTeamChanged: onTeamChanged,
+        ),
         Expanded(
           child: ActionGrid(
             selectedAction: state.selectedAction?.id,
