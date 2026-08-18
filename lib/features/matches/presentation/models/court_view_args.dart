@@ -45,6 +45,7 @@ class CourtViewArgs {
     this.competitionLabel,
     this.initialPeriod = 1,
     this.periodDurationSeconds = 600,
+    this.initialClockSeconds,
   });
 
   final CourtTeam home;
@@ -56,6 +57,10 @@ class CourtViewArgs {
 
   /// Length of a period in seconds, used by the game clock (default 10:00).
   final int periodDurationSeconds;
+
+  /// If non-null, the clock starts at this value instead of [periodDurationSeconds].
+  /// Used when resuming an in-progress annotation session.
+  final int? initialClockSeconds;
 
   /// A neutral demo roster/teams used when the screen is opened without args
   /// (e.g. deep link) so the annotator UI is still usable.

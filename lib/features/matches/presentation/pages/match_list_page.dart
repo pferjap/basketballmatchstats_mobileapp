@@ -114,6 +114,23 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
           awayRoster = CourtViewArgs.demo().away.roster;
         }
 
+        // Determine the resume clock from existing events.
+        int? resumeClock;
+        try {
+          final matchRepo = ref.read(matchRepositoryProvider);
+          final eventsPage = await matchRepo.getMatchEvents(match.id, limit: 1);
+          if (eventsPage.items.isNotEmpty) {
+            final clock = eventsPage.items.first.gameClock;
+            final parts = clock.split(':');
+            if (parts.length == 2) {
+              resumeClock = (int.tryParse(parts[0]) ?? 0) * 60 +
+                  (int.tryParse(parts[1]) ?? 0);
+            }
+          }
+        } catch (_) {
+          // Best-effort.
+        }
+
         if (!mounted) return;
         context.push(
           '/matches/${match.id}/annotate',
@@ -129,6 +146,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
               roster: awayRoster,
             ),
             competitionLabel: match.competitionId,
+            initialClockSeconds: resumeClock,
           ),
         );
       case MatchListMode.spectate:
