@@ -785,7 +785,7 @@ cuenta nace como `VIEWER` y queda logueada al terminar.
   - Título "Crea tu cuenta".
   - Subtítulo que deja clara la consecuencia del rol por defecto:
     "Tu cuenta se creará como espectador, con acceso a seguir partidos en
-    directo. Un administrador puede ampliar tus permisos más adelante."
+    directo."
   - Campo "Nombre" → `firstName` (obligatorio).
   - Campo "Apellidos" → `lastName` (obligatorio).
   - Campo "Correo electrónico" → `email` (obligatorio, validación de formato).
