@@ -79,7 +79,6 @@ class ClubsTab extends ConsumerWidget {
           AdminSearchBar(
             hintText: 'Buscar club...',
             onSearchChanged: controller.setSearch,
-            onFiltersPressed: () {},
           ),
           const SizedBox(height: kSpacingM),
           Expanded(

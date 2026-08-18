@@ -80,10 +80,17 @@ class ClubsAdminState {
 }
 
 /// Loads, filters, paginates and deletes clubs for the admin panel.
+///
+/// The `GET /clubs` endpoint exposes no text-search parameter, so the whole
+/// list is fetched once and both filtering and pagination are performed
+/// client-side.
 class ClubsAdminController extends AutoDisposeNotifier<ClubsAdminState> {
   ClubRepository get _repository => ref.read(clubRepositoryProvider);
 
   bool _disposed = false;
+
+  /// Every club fetched from the API, before the client-side search filter.
+  List<Club> _all = const <Club>[];
 
   @override
   ClubsAdminState build() {
@@ -91,34 +98,20 @@ class ClubsAdminController extends AutoDisposeNotifier<ClubsAdminState> {
     ref.onDispose(() => _disposed = true);
     // Deferred past build() so a synchronous repository failure never mutates
     // state while the notifier is still being constructed.
-    Future<void>.microtask(() => loadClubs());
+    Future<void>.microtask(loadClubs);
     return const ClubsAdminState();
   }
 
-  /// Loads [page] applying the current (or newly supplied) [search] filter.
-  Future<void> loadClubs({int page = 1, String? search}) async {
-    final query = search ?? state.search;
-    _setState(state.copyWith(isLoading: true, page: page, search: query));
+  /// Fetches every club and shows the first page of the current filter.
+  Future<void> loadClubs() async {
+    _setState(state.copyWith(isLoading: true));
     try {
-      final result = await _repository.getClubs(
-        page: page,
-        limit: kClubsPageSize,
-        search: query.isEmpty ? null : query,
-      );
-      _setState(
-        ClubsAdminState(
-          clubs: result.items,
-          page: result.page ?? page,
-          total: result.total ?? result.items.length,
-          search: query,
-          isLoading: false,
-        ),
-      );
+      _all = await _fetchAll();
+      _apply(page: 1);
     } on AppException catch (error) {
       _setState(
         ClubsAdminState(
-          page: page,
-          search: query,
+          search: state.search,
           isLoading: false,
           errorMessage: error.message,
         ),
@@ -126,14 +119,67 @@ class ClubsAdminController extends AutoDisposeNotifier<ClubsAdminState> {
     }
   }
 
-  /// Applies a new search term, returning to the first page.
-  Future<void> setSearch(String query) => loadClubs(search: query);
+  /// Pulls all clubs by walking the paginated endpoint at the maximum limit.
+  Future<List<Club>> _fetchAll() async {
+    final clubs = <Club>[];
+    var page = 1;
+    while (true) {
+      final result = await _repository.getClubs(page: page, limit: 100);
+      clubs.addAll(result.items);
+      final total = result.total ?? clubs.length;
+      if (result.items.isEmpty || clubs.length >= total) {
+        break;
+      }
+      page++;
+    }
+    return clubs;
+  }
 
-  /// Jumps to [page] keeping the active filter.
-  Future<void> goToPage(int page) => loadClubs(page: page);
+  /// Recomputes the visible page from [_all] for [page] and [search].
+  void _apply({required int page, String? search}) {
+    final query = search ?? state.search;
+    final filtered = _filter(query);
+    final pageCount = filtered.isEmpty
+        ? 1
+        : (filtered.length / kClubsPageSize).ceil();
+    final safePage = page.clamp(1, pageCount);
+    final start = (safePage - 1) * kClubsPageSize;
+    _setState(
+      ClubsAdminState(
+        clubs: filtered
+            .skip(start)
+            .take(kClubsPageSize)
+            .toList(growable: false),
+        page: safePage,
+        total: filtered.length,
+        search: query,
+        isLoading: false,
+      ),
+    );
+  }
 
-  /// Reloads the current page.
-  Future<void> refresh() => loadClubs(page: state.page);
+  List<Club> _filter(String query) {
+    if (query.isEmpty) {
+      return _all;
+    }
+    final needle = query.toLowerCase();
+    return _all
+        .where(
+          (Club club) =>
+              club.name.toLowerCase().contains(needle) ||
+              (club.city?.toLowerCase().contains(needle) ?? false),
+        )
+        .toList(growable: false);
+  }
+
+  /// Applies a new search term, returning to the first page. No network call.
+  Future<void> setSearch(String query) async => _apply(page: 1, search: query);
+
+  /// Jumps to [page] over the filtered list. No network call.
+  Future<void> goToPage(int page) async => _apply(page: page);
+
+  /// Reloads the full list from the API.
+  Future<void> refresh() => loadClubs();
 
   /// Deletes [clubId] and reloads the list.
   ///
@@ -142,13 +188,13 @@ class ClubsAdminController extends AutoDisposeNotifier<ClubsAdminState> {
   Future<String?> deleteClub(String clubId) async {
     try {
       await _repository.deleteClub(clubId);
+      _all = await _fetchAll();
     } on AppException catch (error) {
       return error.message;
     }
-    // Stepping back a page avoids landing on an empty tail page after the
-    // last item of the current page is removed.
-    final isLastItemOnPage = state.clubs.length == 1 && state.page > 1;
-    await loadClubs(page: isLastItemOnPage ? state.page - 1 : state.page);
+    // _apply clamps the page, so removing the last item of the tail page lands
+    // on the new last page instead of an empty one.
+    _apply(page: state.page);
     return null;
   }
 

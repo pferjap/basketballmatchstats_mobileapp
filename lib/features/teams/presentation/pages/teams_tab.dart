@@ -79,7 +79,6 @@ class TeamsTab extends ConsumerWidget {
           AdminSearchBar(
             hintText: 'Buscar equipo...',
             onSearchChanged: controller.setSearch,
-            onFiltersPressed: () {},
           ),
           const SizedBox(height: kSpacingM),
           Expanded(

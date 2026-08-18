@@ -79,7 +79,6 @@ class PlayersTab extends ConsumerWidget {
           AdminSearchBar(
             hintText: 'Buscar jugador...',
             onSearchChanged: controller.setSearch,
-            onFiltersPressed: () {},
           ),
           const SizedBox(height: kSpacingM),
           Expanded(

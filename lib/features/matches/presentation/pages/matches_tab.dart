@@ -91,7 +91,6 @@ class MatchesTab extends ConsumerWidget {
           AdminSearchBar(
             hintText: 'Buscar partido...',
             onSearchChanged: controller.setSearch,
-            onFiltersPressed: () {},
           ),
           const SizedBox(height: kSpacingM),
           Expanded(

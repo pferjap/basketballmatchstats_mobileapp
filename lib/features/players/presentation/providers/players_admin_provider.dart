@@ -80,10 +80,17 @@ class PlayersAdminState {
 }
 
 /// Loads, filters, paginates and deletes players for the admin panel.
+///
+/// The `GET /players` endpoint exposes no text-search parameter, so the whole
+/// list is fetched once and both filtering and pagination are performed
+/// client-side.
 class PlayersAdminController extends AutoDisposeNotifier<PlayersAdminState> {
   PlayerRepository get _repository => ref.read(playerRepositoryProvider);
 
   bool _disposed = false;
+
+  /// Every player fetched from the API, before the client-side search filter.
+  List<Player> _all = const <Player>[];
 
   @override
   PlayersAdminState build() {
@@ -91,34 +98,20 @@ class PlayersAdminController extends AutoDisposeNotifier<PlayersAdminState> {
     ref.onDispose(() => _disposed = true);
     // Deferred past build() so a synchronous repository failure never mutates
     // state while the notifier is still being constructed.
-    Future<void>.microtask(() => loadPlayers());
+    Future<void>.microtask(loadPlayers);
     return const PlayersAdminState();
   }
 
-  /// Loads [page] applying the current (or newly supplied) [search] filter.
-  Future<void> loadPlayers({int page = 1, String? search}) async {
-    final query = search ?? state.search;
-    _setState(state.copyWith(isLoading: true, page: page, search: query));
+  /// Fetches every player and shows the first page of the current filter.
+  Future<void> loadPlayers() async {
+    _setState(state.copyWith(isLoading: true));
     try {
-      final result = await _repository.getPlayers(
-        page: page,
-        limit: kPlayersPageSize,
-        search: query.isEmpty ? null : query,
-      );
-      _setState(
-        PlayersAdminState(
-          players: result.items,
-          page: result.page ?? page,
-          total: result.total ?? result.items.length,
-          search: query,
-          isLoading: false,
-        ),
-      );
+      _all = await _fetchAll();
+      _apply(page: 1);
     } on AppException catch (error) {
       _setState(
         PlayersAdminState(
-          page: page,
-          search: query,
+          search: state.search,
           isLoading: false,
           errorMessage: error.message,
         ),
@@ -126,14 +119,68 @@ class PlayersAdminController extends AutoDisposeNotifier<PlayersAdminState> {
     }
   }
 
-  /// Applies a new search term, returning to the first page.
-  Future<void> setSearch(String query) => loadPlayers(search: query);
+  /// Pulls all players by walking the paginated endpoint at the maximum limit.
+  Future<List<Player>> _fetchAll() async {
+    final players = <Player>[];
+    var page = 1;
+    while (true) {
+      final result = await _repository.getPlayers(page: page, limit: 100);
+      players.addAll(result.items);
+      final total = result.total ?? players.length;
+      if (result.items.isEmpty || players.length >= total) {
+        break;
+      }
+      page++;
+    }
+    return players;
+  }
 
-  /// Jumps to [page] keeping the active filter.
-  Future<void> goToPage(int page) => loadPlayers(page: page);
+  /// Recomputes the visible page from [_all] for [page] and [search].
+  void _apply({required int page, String? search}) {
+    final query = search ?? state.search;
+    final filtered = _filter(query);
+    final pageCount = filtered.isEmpty
+        ? 1
+        : (filtered.length / kPlayersPageSize).ceil();
+    final safePage = page.clamp(1, pageCount);
+    final start = (safePage - 1) * kPlayersPageSize;
+    _setState(
+      PlayersAdminState(
+        players: filtered
+            .skip(start)
+            .take(kPlayersPageSize)
+            .toList(growable: false),
+        page: safePage,
+        total: filtered.length,
+        search: query,
+        isLoading: false,
+      ),
+    );
+  }
 
-  /// Reloads the current page.
-  Future<void> refresh() => loadPlayers(page: state.page);
+  List<Player> _filter(String query) {
+    if (query.isEmpty) {
+      return _all;
+    }
+    final needle = query.toLowerCase();
+    return _all
+        .where(
+          (Player player) =>
+              player.fullName.toLowerCase().contains(needle) ||
+              (player.teamName?.toLowerCase().contains(needle) ?? false) ||
+              (player.jerseyNumber?.toString().contains(needle) ?? false),
+        )
+        .toList(growable: false);
+  }
+
+  /// Applies a new search term, returning to the first page. No network call.
+  Future<void> setSearch(String query) async => _apply(page: 1, search: query);
+
+  /// Jumps to [page] over the filtered list. No network call.
+  Future<void> goToPage(int page) async => _apply(page: page);
+
+  /// Reloads the full list from the API.
+  Future<void> refresh() => loadPlayers();
 
   /// Deletes [playerId] and reloads the list.
   ///
@@ -142,13 +189,13 @@ class PlayersAdminController extends AutoDisposeNotifier<PlayersAdminState> {
   Future<String?> deletePlayer(String playerId) async {
     try {
       await _repository.deletePlayer(playerId);
+      _all = await _fetchAll();
     } on AppException catch (error) {
       return error.message;
     }
-    // Stepping back a page avoids landing on an empty tail page after the
-    // last item of the current page is removed.
-    final isLastItemOnPage = state.players.length == 1 && state.page > 1;
-    await loadPlayers(page: isLastItemOnPage ? state.page - 1 : state.page);
+    // _apply clamps the page, so removing the last item of the tail page lands
+    // on the new last page instead of an empty one.
+    _apply(page: state.page);
     return null;
   }
 

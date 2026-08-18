@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../../../teams/domain/entities/team.dart';
 import '../../domain/entities/match.dart';
 import '../../domain/repositories/match_repository.dart';
+import 'match_form_provider.dart';
 import 'match_providers.dart';
 
 /// Page size for the admin matches list.
@@ -80,10 +82,18 @@ class MatchesAdminState {
 }
 
 /// Loads, paginates and deletes matches for the admin panel.
+///
+/// The `GET /matches` endpoint exposes no text-search parameter, so the whole
+/// list is fetched once and both filtering and pagination are performed
+/// client-side. Matches are matched by venue and by their home/away team
+/// names, resolved from [matchFormTeamsProvider].
 class MatchesAdminController extends AutoDisposeNotifier<MatchesAdminState> {
   MatchRepository get _repository => ref.read(matchRepositoryProvider);
 
   bool _disposed = false;
+
+  /// Every match fetched from the API, before the client-side search filter.
+  List<Match> _all = const <Match>[];
 
   @override
   MatchesAdminState build() {
@@ -91,36 +101,20 @@ class MatchesAdminController extends AutoDisposeNotifier<MatchesAdminState> {
     ref.onDispose(() => _disposed = true);
     // Deferred past build() so a synchronous repository failure never mutates
     // state while the notifier is still being constructed.
-    Future<void>.microtask(() => loadMatches());
+    Future<void>.microtask(loadMatches);
     return const MatchesAdminState();
   }
 
-  /// Loads [page] applying the current (or newly supplied) [search] filter.
-  ///
-  /// The list endpoint takes no search parameter, so the filter is applied
-  /// client-side over the loaded page.
-  Future<void> loadMatches({int page = 1, String? search}) async {
-    final query = search ?? state.search;
-    _setState(state.copyWith(isLoading: true, page: page, search: query));
+  /// Fetches every match and shows the first page of the current filter.
+  Future<void> loadMatches() async {
+    _setState(state.copyWith(isLoading: true));
     try {
-      final result = await _repository.getMatches(
-        page: page,
-        limit: kMatchesPageSize,
-      );
-      _setState(
-        MatchesAdminState(
-          matches: _filter(result.items, query),
-          page: result.page ?? page,
-          total: result.total ?? result.items.length,
-          search: query,
-          isLoading: false,
-        ),
-      );
+      _all = await _fetchAll();
+      _apply(page: 1);
     } on AppException catch (error) {
       _setState(
         MatchesAdminState(
-          page: page,
-          search: query,
+          search: state.search,
           isLoading: false,
           errorMessage: error.message,
         ),
@@ -128,29 +122,73 @@ class MatchesAdminController extends AutoDisposeNotifier<MatchesAdminState> {
     }
   }
 
-  List<Match> _filter(List<Match> matches, String query) {
+  /// Pulls all matches by walking the paginated endpoint at the maximum limit.
+  Future<List<Match>> _fetchAll() async {
+    final matches = <Match>[];
+    var page = 1;
+    while (true) {
+      final result = await _repository.getMatches(page: page, limit: 100);
+      matches.addAll(result.items);
+      final total = result.total ?? matches.length;
+      if (result.items.isEmpty || matches.length >= total) {
+        break;
+      }
+      page++;
+    }
+    return matches;
+  }
+
+  /// Recomputes the visible page from [_all] for [page] and [search].
+  void _apply({required int page, String? search}) {
+    final query = search ?? state.search;
+    final filtered = _filter(query);
+    final pageCount = filtered.isEmpty
+        ? 1
+        : (filtered.length / kMatchesPageSize).ceil();
+    final safePage = page.clamp(1, pageCount);
+    final start = (safePage - 1) * kMatchesPageSize;
+    _setState(
+      MatchesAdminState(
+        matches: filtered
+            .skip(start)
+            .take(kMatchesPageSize)
+            .toList(growable: false),
+        page: safePage,
+        total: filtered.length,
+        search: query,
+        isLoading: false,
+      ),
+    );
+  }
+
+  List<Match> _filter(String query) {
     if (query.isEmpty) {
-      return matches;
+      return _all;
     }
     final needle = query.toLowerCase();
-    return matches
+    final teamNames = <String, String>{
+      for (final Team team
+          in ref.read(matchFormTeamsProvider).valueOrNull ?? const <Team>[])
+        team.id: team.name.toLowerCase(),
+    };
+    return _all
         .where(
-          (Match m) =>
-              m.homeTeamId.toLowerCase().contains(needle) ||
-              m.awayTeamId.toLowerCase().contains(needle) ||
-              (m.venue?.toLowerCase().contains(needle) ?? false),
+          (Match match) =>
+              (teamNames[match.homeTeamId]?.contains(needle) ?? false) ||
+              (teamNames[match.awayTeamId]?.contains(needle) ?? false) ||
+              (match.venue?.toLowerCase().contains(needle) ?? false),
         )
         .toList(growable: false);
   }
 
-  /// Applies a new search term, returning to the first page.
-  Future<void> setSearch(String query) => loadMatches(search: query);
+  /// Applies a new search term, returning to the first page. No network call.
+  Future<void> setSearch(String query) async => _apply(page: 1, search: query);
 
-  /// Jumps to [page] keeping the active filter.
-  Future<void> goToPage(int page) => loadMatches(page: page);
+  /// Jumps to [page] over the filtered list. No network call.
+  Future<void> goToPage(int page) async => _apply(page: page);
 
-  /// Reloads the current page.
-  Future<void> refresh() => loadMatches(page: state.page);
+  /// Reloads the full list from the API.
+  Future<void> refresh() => loadMatches();
 
   /// Deletes [matchId] and reloads the list.
   ///
@@ -159,13 +197,13 @@ class MatchesAdminController extends AutoDisposeNotifier<MatchesAdminState> {
   Future<String?> deleteMatch(String matchId) async {
     try {
       await _repository.deleteMatch(matchId);
+      _all = await _fetchAll();
     } on AppException catch (error) {
       return error.message;
     }
-    // Stepping back a page avoids landing on an empty tail page after the
-    // last item of the current page is removed.
-    final isLastItemOnPage = state.matches.length == 1 && state.page > 1;
-    await loadMatches(page: isLastItemOnPage ? state.page - 1 : state.page);
+    // _apply clamps the page, so removing the last item of the tail page lands
+    // on the new last page instead of an empty one.
+    _apply(page: state.page);
     return null;
   }
 
