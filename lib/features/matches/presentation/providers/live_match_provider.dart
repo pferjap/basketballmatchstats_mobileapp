@@ -129,14 +129,23 @@ class LiveMatchController
       await _ws.connect();
       _ws.joinMatch(matchId);
 
-      final statistics = await _repository.getMatchStatistics(matchId);
+      // Statistics endpoint may not be available — score will be derived from
+      // events in a future phase; for now, gracefully default to null.
+      MatchScore? score;
+      try {
+        final statistics = await _repository.getMatchStatistics(matchId);
+        score = statistics.score;
+      } catch (_) {
+        // Statistics unavailable; proceed without score.
+      }
+
       final page = await _repository.getMatchEvents(matchId, limit: 50);
       final events = _sorted(page.items);
       _lastEventAt = events.isNotEmpty ? events.first.createdAt : null;
 
       _setState(
         state.copyWith(
-          score: statistics.score,
+          score: score,
           events: events,
           isLoading: false,
           hasMoreEarlier: page.hasMore,

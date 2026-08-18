@@ -40,7 +40,7 @@ class AnnotationScoreHeader extends StatelessWidget {
       color: AppColors.background,
       padding: const EdgeInsets.symmetric(
         horizontal: kSpacingM,
-        vertical: kSpacingS,
+        vertical: 4,
       ),
       child: Column(
         children: <Widget>[
@@ -70,7 +70,6 @@ class AnnotationScoreHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: kSpacingXS),
           Row(
             children: <Widget>[
               Expanded(
@@ -108,7 +107,7 @@ class _TeamBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crest = Icon(Icons.shield, color: crestColor, size: 36);
+    final crest = Icon(Icons.shield, color: crestColor, size: 28);
     final label = Column(
       crossAxisAlignment: alignEnd
           ? CrossAxisAlignment.end
@@ -121,7 +120,7 @@ class _TeamBlock extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
           ),
@@ -130,7 +129,7 @@ class _TeamBlock extends StatelessWidget {
           '$score',
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 40,
+            fontSize: 32,
             fontWeight: FontWeight.w800,
             height: 1,
           ),
