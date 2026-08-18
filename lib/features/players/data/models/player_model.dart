@@ -1,24 +1,24 @@
 import '../../domain/entities/player.dart';
 
-/// Maps the backend position strings (`PG`, `SG`, …) to the domain
-/// [PlayerPosition] enum.
+/// Maps the backend position strings (`POINT_GUARD`, `SHOOTING_GUARD`, …) to
+/// the domain [PlayerPosition] enum.
 class PlayerPositionConverter {
   const PlayerPositionConverter();
 
   static const Map<String, PlayerPosition> _fromApi = <String, PlayerPosition>{
-    'PG': PlayerPosition.pointGuard,
-    'SG': PlayerPosition.shootingGuard,
-    'SF': PlayerPosition.smallForward,
-    'PF': PlayerPosition.powerForward,
-    'C': PlayerPosition.center,
+    'POINT_GUARD': PlayerPosition.pointGuard,
+    'SHOOTING_GUARD': PlayerPosition.shootingGuard,
+    'SMALL_FORWARD': PlayerPosition.smallForward,
+    'POWER_FORWARD': PlayerPosition.powerForward,
+    'CENTER': PlayerPosition.center,
   };
 
   static const Map<PlayerPosition, String> _toApi = <PlayerPosition, String>{
-    PlayerPosition.pointGuard: 'PG',
-    PlayerPosition.shootingGuard: 'SG',
-    PlayerPosition.smallForward: 'SF',
-    PlayerPosition.powerForward: 'PF',
-    PlayerPosition.center: 'C',
+    PlayerPosition.pointGuard: 'POINT_GUARD',
+    PlayerPosition.shootingGuard: 'SHOOTING_GUARD',
+    PlayerPosition.smallForward: 'SMALL_FORWARD',
+    PlayerPosition.powerForward: 'POWER_FORWARD',
+    PlayerPosition.center: 'CENTER',
   };
 
   /// Returns `null` for an absent value; throws on an unrecognised one so a
