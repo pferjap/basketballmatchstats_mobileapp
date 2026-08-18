@@ -70,7 +70,7 @@ void main() {
     expect(state.matches.map((m) => m.id).toList(), <String>['1', '2']);
   });
 
-  test('spectate mode keeps in-progress matches only', () async {
+  test('spectate mode keeps scheduled and in-progress matches', () async {
     when(() => repository.getMatches(
           page: any(named: 'page'),
           limit: any(named: 'limit'),
@@ -96,7 +96,7 @@ void main() {
 
     final state =
         container.read(matchListControllerProvider(MatchListMode.spectate));
-    expect(state.matches.map((m) => m.id).toList(), <String>['2']);
+    expect(state.matches.map((m) => m.id).toList(), <String>['1', '2']);
   });
 
   test('surfaces an error message when the initial load fails', () async {

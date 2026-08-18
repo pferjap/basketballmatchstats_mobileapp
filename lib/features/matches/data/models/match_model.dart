@@ -8,12 +8,13 @@ class MatchStatusConverter {
   static const Map<String, MatchStatus> _fromApi = <String, MatchStatus>{
     'SCHEDULED': MatchStatus.scheduled,
     'IN_PROGRESS': MatchStatus.inProgress,
+    'ONGOING': MatchStatus.inProgress,
     'FINISHED': MatchStatus.finished,
   };
 
   static const Map<MatchStatus, String> _toApi = <MatchStatus, String>{
     MatchStatus.scheduled: 'SCHEDULED',
-    MatchStatus.inProgress: 'IN_PROGRESS',
+    MatchStatus.inProgress: 'ONGOING',
     MatchStatus.finished: 'FINISHED',
   };
 

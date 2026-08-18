@@ -203,7 +203,8 @@ class MatchListController
               return m.status == MatchStatus.scheduled ||
                   m.status == MatchStatus.inProgress;
             case MatchListMode.spectate:
-              return m.status == MatchStatus.inProgress;
+              return m.status == MatchStatus.scheduled ||
+                  m.status == MatchStatus.inProgress;
           }
         })
         .toList(growable: false);

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/sync_providers.dart';
 import '../../../../core/network/ws_manager.dart';
+import '../../../teams/presentation/providers/teams_providers.dart';
 import '../../data/datasources/match_local_datasource.dart';
 import '../../data/datasources/match_remote_datasource.dart';
 import '../../data/datasources/match_ws_datasource.dart';
@@ -71,4 +72,14 @@ final getLiveScoreUseCaseProvider = Provider<GetLiveScoreUseCase>((ref) {
 /// Use case: read a match's events (paginated).
 final getMatchEventsUseCaseProvider = Provider<GetMatchEventsUseCase>((ref) {
   return GetMatchEventsUseCase(ref.watch(matchRepositoryProvider));
+});
+
+/// Resolves a team name by its ID, caching the result for the session.
+final teamNameProvider = FutureProvider.family<String, String>((ref, teamId) async {
+  try {
+    final team = await ref.watch(teamRepositoryProvider).getTeam(teamId);
+    return team.name;
+  } catch (_) {
+    return teamId;
+  }
 });

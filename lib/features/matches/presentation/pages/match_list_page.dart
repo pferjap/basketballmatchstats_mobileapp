@@ -9,6 +9,7 @@ import '../../domain/entities/match.dart';
 import '../models/court_view_args.dart';
 import '../pages/match_live_page.dart';
 import '../providers/match_list_provider.dart';
+import '../providers/match_providers.dart';
 import '../widgets/match_card.dart';
 
 /// Intermediate screen between the home menu and the Court View / Live screens
@@ -58,6 +59,13 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
   };
 
   void _openMatch(Match match) {
+    final homeName =
+        ref.read(teamNameProvider(match.homeTeamId)).valueOrNull ??
+            match.homeTeamId;
+    final awayName =
+        ref.read(teamNameProvider(match.awayTeamId)).valueOrNull ??
+            match.awayTeamId;
+
     switch (widget.mode) {
       case MatchListMode.annotate:
         final demo = CourtViewArgs.demo();
@@ -66,12 +74,12 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
           extra: CourtViewArgs(
             home: CourtTeam(
               id: match.homeTeamId,
-              name: match.homeTeamId,
+              name: homeName,
               roster: demo.home.roster,
             ),
             away: CourtTeam(
               id: match.awayTeamId,
-              name: match.awayTeamId,
+              name: awayName,
               roster: demo.away.roster,
             ),
             competitionLabel: match.competitionId,
@@ -83,8 +91,8 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
           extra: LiveMatchArgs(
             homeTeamId: match.homeTeamId,
             awayTeamId: match.awayTeamId,
-            homeTeamName: match.homeTeamId,
-            awayTeamName: match.awayTeamId,
+            homeTeamName: homeName,
+            awayTeamName: awayName,
             competitionLabel: match.competitionId,
           ),
         );
@@ -193,8 +201,29 @@ class _Body extends StatelessWidget {
           );
         }
         final match = state.matches[index];
-        return MatchCard(match: match, onTap: () => onTapMatch(match));
+        return _MatchCardWithNames(match: match, onTap: () => onTapMatch(match));
       },
+    );
+  }
+}
+
+/// Wraps [MatchCard] with team-name resolution via [teamNameProvider].
+class _MatchCardWithNames extends ConsumerWidget {
+  const _MatchCardWithNames({required this.match, required this.onTap});
+
+  final Match match;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final homeName = ref.watch(teamNameProvider(match.homeTeamId));
+    final awayName = ref.watch(teamNameProvider(match.awayTeamId));
+
+    return MatchCard(
+      match: match,
+      onTap: onTap,
+      homeLabel: homeName.valueOrNull,
+      awayLabel: awayName.valueOrNull,
     );
   }
 }

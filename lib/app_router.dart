@@ -42,6 +42,7 @@ abstract final class AppRoutes {
 
 /// Roles allowed to open the live-annotation (Court View) screen (§13).
 const Set<UserRole> _annotationRoles = <UserRole>{
+  UserRole.superAdmin,
   UserRole.statistician,
   UserRole.clubAdmin,
 };
