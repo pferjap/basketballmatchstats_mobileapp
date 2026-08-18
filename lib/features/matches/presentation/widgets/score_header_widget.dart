@@ -49,7 +49,7 @@ class ScoreHeaderWidget extends StatelessWidget {
             children: [
               Expanded(
                 child: _TeamColumn(
-                  icon: Icons.sports_basketball,
+                  icon: Icons.shield,
                   iconColor: AppColors.primary,
                   teamName: homeTeamName,
                   clubName: homeClubName,

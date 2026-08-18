@@ -40,7 +40,7 @@ class AnnotationScoreHeader extends StatelessWidget {
       color: AppColors.background,
       padding: const EdgeInsets.symmetric(
         horizontal: kSpacingM,
-        vertical: 4,
+        vertical: 2,
       ),
       child: Column(
         children: <Widget>[

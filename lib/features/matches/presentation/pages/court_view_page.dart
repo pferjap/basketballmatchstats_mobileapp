@@ -87,8 +87,8 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-          tooltip: 'Menú',
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          tooltip: 'Volver',
           onPressed: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.home),
         ),
@@ -97,13 +97,6 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
           onChanged: controller.setPeriod,
         ),
         centerTitle: true,
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.settings, color: AppColors.textPrimary),
-            tooltip: 'Ajustes',
-            onPressed: () => context.go(AppRoutes.settings),
-          ),
-        ],
       ),
       body: Column(
         children: <Widget>[

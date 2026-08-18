@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
+import '../../../players/presentation/providers/players_providers.dart';
 import '../../domain/entities/match.dart';
 import '../models/court_view_args.dart';
 import '../pages/match_live_page.dart';
@@ -65,19 +66,67 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
 
     switch (widget.mode) {
       case MatchListMode.annotate:
-        final demo = CourtViewArgs.demo();
+        // Auto-start the match if it's still scheduled.
+        if (match.status == MatchStatus.scheduled) {
+          try {
+            await ref.read(startMatchUseCaseProvider).call(match.id);
+          } catch (_) {
+            // Best-effort; the API may already have started it.
+          }
+        }
+
+        // Load real rosters from the API.
+        final playerRepo = ref.read(playerRepositoryProvider);
+        List<RosterPlayer> homeRoster;
+        List<RosterPlayer> awayRoster;
+        try {
+          final homePlayers = await playerRepo.getPlayers(
+            teamId: match.homeTeamId,
+            limit: 50,
+          );
+          homeRoster = homePlayers.items
+              .map(
+                (p) => RosterPlayer(
+                  id: p.id,
+                  number: p.jerseyNumber ?? 0,
+                  name: '${p.firstName} ${p.lastName}',
+                ),
+              )
+              .toList(growable: false);
+        } catch (_) {
+          homeRoster = CourtViewArgs.demo().home.roster;
+        }
+        try {
+          final awayPlayers = await playerRepo.getPlayers(
+            teamId: match.awayTeamId,
+            limit: 50,
+          );
+          awayRoster = awayPlayers.items
+              .map(
+                (p) => RosterPlayer(
+                  id: p.id,
+                  number: p.jerseyNumber ?? 0,
+                  name: '${p.firstName} ${p.lastName}',
+                ),
+              )
+              .toList(growable: false);
+        } catch (_) {
+          awayRoster = CourtViewArgs.demo().away.roster;
+        }
+
+        if (!mounted) return;
         context.push(
           '/matches/${match.id}/annotate',
           extra: CourtViewArgs(
             home: CourtTeam(
               id: match.homeTeamId,
               name: homeName,
-              roster: demo.home.roster,
+              roster: homeRoster,
             ),
             away: CourtTeam(
               id: match.awayTeamId,
               name: awayName,
-              roster: demo.away.roster,
+              roster: awayRoster,
             ),
             competitionLabel: match.competitionId,
           ),

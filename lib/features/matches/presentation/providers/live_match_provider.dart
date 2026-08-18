@@ -215,12 +215,18 @@ class LiveMatchController
         matchId,
         since: _lastEventAt,
       );
-      final statistics = await _repository.getMatchStatistics(matchId);
+      MatchScore? score;
+      try {
+        final statistics = await _repository.getMatchStatistics(matchId);
+        score = statistics.score;
+      } catch (_) {
+        // Statistics endpoint may not be available.
+      }
       final merged = _mergeEvents(page.items, state.events);
       if (merged.isNotEmpty) {
         _lastEventAt = merged.first.createdAt;
       }
-      _setState(state.copyWith(events: merged, score: statistics.score));
+      _setState(state.copyWith(events: merged, score: score ?? state.score));
     } catch (_) {
       // Reconciliation is best-effort; live updates continue regardless.
     }
