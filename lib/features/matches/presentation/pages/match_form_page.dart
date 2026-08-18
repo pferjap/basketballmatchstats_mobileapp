@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_dropdown_field.dart';
 import '../../../../core/widgets/admin/admin_form_field.dart';
-import '../../../clubs/domain/entities/club.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../domain/entities/match.dart';
 import '../../domain/repositories/match_repository.dart';
@@ -24,7 +23,6 @@ class MatchFormPage extends ConsumerStatefulWidget {
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _scheduledAt;
-  String? _clubId;
   String? _homeTeamId;
   String? _awayTeamId;
   DateTime? _scheduledAtValue;
@@ -94,30 +92,34 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     });
   }
 
-  void _onClubChanged(String? value) {
-    setState(() {
-      _clubId = value;
-      _homeTeamId = null;
-      _awayTeamId = null;
-    });
-  }
-
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
-    final clubId = _clubId;
     final homeTeamId = _homeTeamId;
     final awayTeamId = _awayTeamId;
     final scheduledAt = _scheduledAtValue;
 
+    // The API requires the organising club; a match's owner club is taken from
+    // its home team, so the two teams may belong to different clubs.
+    final teams = ref.read(matchFormTeamsProvider).valueOrNull ?? const <Team>[];
+    String? clubId;
+    if (homeTeamId != null) {
+      for (final Team team in teams) {
+        if (team.id == homeTeamId) {
+          clubId = team.clubId;
+          break;
+        }
+      }
+    }
+
     final String? blocker;
-    if (clubId == null) {
-      blocker = 'Selecciona el club.';
-    } else if (homeTeamId == null || awayTeamId == null) {
+    if (homeTeamId == null || awayTeamId == null) {
       blocker = 'Selecciona el equipo local y el visitante.';
     } else if (homeTeamId == awayTeamId) {
       blocker = 'El equipo local y el visitante deben ser distintos.';
+    } else if (clubId == null) {
+      blocker = 'No se pudo determinar el club del equipo local.';
     } else if (scheduledAt == null) {
       blocker = 'Selecciona la fecha y la hora del partido.';
     } else {
@@ -175,8 +177,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final isSubmitting = ref.watch(
       matchFormControllerProvider.select((MatchFormState s) => s.isSubmitting),
     );
-    final clubs = ref.watch(matchFormClubsProvider);
-    final teamsAsync = ref.watch(matchFormTeamsByClubProvider(_clubId));
+    final teamsAsync = ref.watch(matchFormTeamsProvider);
 
     final List<Team> teamsList =
         teamsAsync.maybeWhen(data: (List<Team> t) => t, orElse: () => <Team>[]);
@@ -242,32 +243,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(kSpacingM),
                       children: <Widget>[
-                        clubs.when(
-                          loading: () => const Padding(
-                            padding: EdgeInsets.only(bottom: kSpacingM),
-                            child: LinearProgressIndicator(
-                              color: AppColors.info,
-                              backgroundColor: AppColors.surface,
-                            ),
-                          ),
-                          error: (Object e, StackTrace s) => const Padding(
-                            padding: EdgeInsets.only(bottom: kSpacingM),
-                            child: Text(
-                              'No se pudieron cargar los clubes.',
-                              style: TextStyle(color: AppColors.error),
-                            ),
-                          ),
-                          data: (List<Club> items) =>
-                              AdminDropdownField<String>(
-                                label: 'Club',
-                                hint: 'Selecciona un club',
-                                value: _clubId,
-                                items: <String, String>{
-                                  for (final Club c in items) c.id: c.name,
-                                },
-                                onChanged: _onClubChanged,
-                              ),
-                        ),
                         teamsAsync.when(
                           loading: () => const Padding(
                             padding: EdgeInsets.only(bottom: kSpacingM),
@@ -290,8 +265,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                                 hint: 'Selecciona el equipo local',
                                 value: _homeTeamId,
                                 items: homeOptions,
-                                onChanged: (String? value) =>
-                                    setState(() => _homeTeamId = value),
+                                onChanged: (String? value) => setState(() {
+                                  _homeTeamId = value;
+                                  if (_awayTeamId == value) {
+                                    _awayTeamId = null;
+                                  }
+                                }),
                               ),
                               AdminDropdownField<String>(
                                 label: 'Equipo visitante',

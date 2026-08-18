@@ -2,34 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/exceptions.dart';
-import '../../../clubs/domain/entities/club.dart';
-import '../../../clubs/presentation/providers/clubs_providers.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../../teams/presentation/providers/teams_providers.dart';
 import '../../domain/repositories/match_repository.dart';
 import 'match_providers.dart';
-
-/// Clubs offered by the match form's club dropdown.
-final matchFormClubsProvider = FutureProvider.autoDispose<List<Club>>((
-  ref,
-) async {
-  final page = await ref
-      .watch(clubRepositoryProvider)
-      .getClubs(page: 1, limit: 100);
-  return page.items;
-});
-
-/// Teams offered by the match form's home/away dropdowns, filtered by club.
-final matchFormTeamsByClubProvider =
-    FutureProvider.autoDispose.family<List<Team>, String?>((ref, clubId) async {
-  if (clubId == null) {
-    return <Team>[];
-  }
-  final page = await ref
-      .watch(teamRepositoryProvider)
-      .getTeams(page: 1, limit: 100, clubId: clubId);
-  return page.items;
-});
 
 /// Teams offered by the match form's home/away dropdowns.
 ///
