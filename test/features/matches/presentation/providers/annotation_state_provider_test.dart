@@ -86,7 +86,7 @@ void main() {
       container.read(annotationControllerProvider('m1').notifier);
   AnnotationState read() => container.read(annotationControllerProvider('m1'));
 
-  test('records a non-shot action in two taps and marks it synced', () async {
+  test('records a non-shot action in three taps and marks it synced', () async {
     container.listen(annotationControllerProvider('m1'), (_, _) {});
     await controller().configure(_args);
 
@@ -95,6 +95,10 @@ void main() {
     expect(read().selectedAction?.id, AnnotationActionId.assist);
 
     await controller().selectPlayer(_homePlayer);
+    expect(read().currentStep, 3);
+    expect(read().events, isEmpty);
+
+    await controller().confirmDetails();
 
     final state = read();
     expect(state.events.length, 1);
@@ -124,6 +128,7 @@ void main() {
 
     controller().selectAction(_action(AnnotationActionId.foulPersonal));
     await controller().selectPlayer(_homePlayer);
+    await controller().confirmDetails();
 
     expect(read().homeFouls, 1);
     expect(read().awayFouls, 0);
@@ -134,6 +139,7 @@ void main() {
     await controller().configure(_args);
     controller().selectAction(_action(AnnotationActionId.assist));
     await controller().selectPlayer(_homePlayer);
+    await controller().confirmDetails();
     expect(read().events.length, 1);
 
     await controller().undoLast();

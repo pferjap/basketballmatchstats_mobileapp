@@ -250,16 +250,12 @@ class AnnotationController
     );
   }
 
-  /// Step 2 → record (or → 3 for shots that carry optional details).
+  /// Step 2 → 3: a player was tapped. Always shows the confirmation step so
+  /// the annotator can review before committing.
   Future<void> selectPlayer(RosterPlayer player) async {
     final action = state.selectedAction;
     if (action == null) return;
-    if (action.requiresDetails) {
-      state = state.copyWith(selectedPlayer: player, currentStep: 3);
-      return;
-    }
-    state = state.copyWith(selectedPlayer: player);
-    await _record(action, player);
+    state = state.copyWith(selectedPlayer: player, currentStep: 3);
   }
 
   /// Confirms the optional details step (3) and records the event.
