@@ -3,9 +3,11 @@ import '../entities/match.dart';
 import '../entities/match_event.dart';
 import '../entities/match_statistics.dart';
 
-/// Input for scheduling a match. Both teams and a kick-off time are required.
+/// Input for scheduling a match. Club, both teams and a kick-off time are
+/// required.
 class CreateMatchParams {
   const CreateMatchParams({
+    required this.clubId,
     required this.homeTeamId,
     required this.awayTeamId,
     required this.scheduledAt,
@@ -14,6 +16,7 @@ class CreateMatchParams {
     this.venue,
   });
 
+  final String clubId;
   final String homeTeamId;
   final String awayTeamId;
   final DateTime scheduledAt;

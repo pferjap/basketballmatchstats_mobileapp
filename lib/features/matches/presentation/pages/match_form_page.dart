@@ -5,19 +5,16 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_dropdown_field.dart';
 import '../../../../core/widgets/admin/admin_form_field.dart';
+import '../../../clubs/domain/entities/club.dart';
 import '../../../teams/domain/entities/team.dart';
 import '../../domain/entities/match.dart';
 import '../../domain/repositories/match_repository.dart';
 import '../providers/match_form_provider.dart';
+import '../widgets/match_teams_preview.dart';
 
-/// Create/edit form for a match (Plan.md T-030).
-///
-/// Pops with `true` once the match has been saved so the caller can refresh its
-/// list; pops with no result when cancelled.
 class MatchFormPage extends ConsumerStatefulWidget {
   const MatchFormPage({this.match, super.key});
 
-  /// The match being edited, or `null` to schedule a new one.
   final Match? match;
 
   @override
@@ -26,10 +23,8 @@ class MatchFormPage extends ConsumerStatefulWidget {
 
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  late final TextEditingController _competitionId;
-  late final TextEditingController _seasonId;
-  late final TextEditingController _venue;
   late final TextEditingController _scheduledAt;
+  String? _clubId;
   String? _homeTeamId;
   String? _awayTeamId;
   DateTime? _scheduledAtValue;
@@ -40,9 +35,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   void initState() {
     super.initState();
     final match = widget.match;
-    _competitionId = TextEditingController(text: match?.competitionId ?? '');
-    _seasonId = TextEditingController(text: match?.seasonId ?? '');
-    _venue = TextEditingController(text: match?.venue ?? '');
     _scheduledAtValue = match?.scheduledAt;
     _scheduledAt = TextEditingController(
       text: _formatDateTime(match?.scheduledAt),
@@ -53,9 +45,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   @override
   void dispose() {
-    _competitionId.dispose();
-    _seasonId.dispose();
-    _venue.dispose();
     _scheduledAt.dispose();
     super.dispose();
   }
@@ -70,11 +59,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$day/$month/${local.year} $hour:$minute';
-  }
-
-  String? _optional(TextEditingController controller) {
-    final value = controller.text.trim();
-    return value.isEmpty ? null : value;
   }
 
   Future<void> _pickScheduledAt() async {
@@ -110,16 +94,27 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     });
   }
 
+  void _onClubChanged(String? value) {
+    setState(() {
+      _clubId = value;
+      _homeTeamId = null;
+      _awayTeamId = null;
+    });
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
+    final clubId = _clubId;
     final homeTeamId = _homeTeamId;
     final awayTeamId = _awayTeamId;
     final scheduledAt = _scheduledAtValue;
 
     final String? blocker;
-    if (homeTeamId == null || awayTeamId == null) {
+    if (clubId == null) {
+      blocker = 'Selecciona el club.';
+    } else if (homeTeamId == null || awayTeamId == null) {
       blocker = 'Selecciona el equipo local y el visitante.';
     } else if (homeTeamId == awayTeamId) {
       blocker = 'El equipo local y el visitante deben ser distintos.';
@@ -143,12 +138,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (match == null) {
       saved = await controller.create(
         CreateMatchParams(
+          clubId: clubId!,
           homeTeamId: homeTeamId!,
           awayTeamId: awayTeamId!,
           scheduledAt: scheduledAt!,
-          competitionId: _optional(_competitionId),
-          seasonId: _optional(_seasonId),
-          venue: _optional(_venue),
         ),
       );
     } else {
@@ -158,9 +151,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           homeTeamId: homeTeamId,
           awayTeamId: awayTeamId,
           scheduledAt: scheduledAt,
-          competitionId: _optional(_competitionId),
-          seasonId: _optional(_seasonId),
-          venue: _optional(_venue),
         ),
       );
     }
@@ -185,7 +175,34 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final isSubmitting = ref.watch(
       matchFormControllerProvider.select((MatchFormState s) => s.isSubmitting),
     );
-    final teams = ref.watch(matchFormTeamsProvider);
+    final clubs = ref.watch(matchFormClubsProvider);
+    final teamsAsync = ref.watch(matchFormTeamsByClubProvider(_clubId));
+
+    final List<Team> teamsList =
+        teamsAsync.maybeWhen(data: (List<Team> t) => t, orElse: () => <Team>[]);
+
+    String? homeTeamName;
+    String? awayTeamName;
+    String? homeTeamLogo;
+    String? awayTeamLogo;
+    for (final Team t in teamsList) {
+      if (t.id == _homeTeamId) {
+        homeTeamName = t.name;
+        homeTeamLogo = t.logoUrl;
+      }
+      if (t.id == _awayTeamId) {
+        awayTeamName = t.name;
+        awayTeamLogo = t.logoUrl;
+      }
+    }
+
+    final homeOptions = <String, String>{
+      for (final Team t in teamsList) t.id: t.name,
+    };
+    final awayOptions = <String, String>{
+      for (final Team t in teamsList)
+        if (t.id != _homeTeamId) t.id: t.name,
+    };
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -203,116 +220,141 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         ),
       ),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(kSpacingM),
-            children: <Widget>[
-              teams.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.only(bottom: kSpacingM),
-                  child: LinearProgressIndicator(
-                    color: AppColors.info,
-                    backgroundColor: AppColors.surface,
-                  ),
-                ),
-                error: (Object error, StackTrace stackTrace) => const Padding(
-                  padding: EdgeInsets.only(bottom: kSpacingM),
-                  child: Text(
-                    'No se pudieron cargar los equipos.',
-                    style: TextStyle(color: AppColors.error),
-                  ),
-                ),
-                data: (List<Team> items) {
-                  final options = <String, String>{
-                    for (final Team team in items) team.id: team.name,
-                  };
-                  return Column(
-                    children: <Widget>[
-                      AdminDropdownField<String>(
-                        label: 'Equipo local',
-                        hint: 'Selecciona el equipo local',
-                        value: _homeTeamId,
-                        items: options,
-                        onChanged: (String? value) =>
-                            setState(() => _homeTeamId = value),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final previewHeight = constraints.maxHeight * 0.20;
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: <Widget>[
+                  SizedBox(
+                    height: previewHeight,
+                    child: Center(
+                      child: MatchTeamsPreview(
+                        homeTeamName: homeTeamName,
+                        awayTeamName: awayTeamName,
+                        homeTeamLogoUrl: homeTeamLogo,
+                        awayTeamLogoUrl: awayTeamLogo,
                       ),
-                      AdminDropdownField<String>(
-                        label: 'Equipo visitante',
-                        hint: 'Selecciona el equipo visitante',
-                        value: _awayTeamId,
-                        items: options,
-                        onChanged: (String? value) =>
-                            setState(() => _awayTeamId = value),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              AdminFormField(
-                controller: _scheduledAt,
-                label: 'Fecha y hora',
-                hint: 'dd/mm/aaaa hh:mm',
-                readOnly: true,
-                onTap: _pickScheduledAt,
-              ),
-              AdminFormField(
-                controller: _competitionId,
-                label: 'Competición (ID)',
-                hint: 'Identificador de la competición',
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _seasonId,
-                label: 'Temporada (ID)',
-                hint: 'Identificador de la temporada',
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _venue,
-                label: 'Lugar / cancha',
-                hint: 'Pabellón Municipal',
-                textInputAction: TextInputAction.done,
-              ),
-              const SizedBox(height: kSpacingL),
-              SizedBox(
-                height: kMinTouchTarget,
-                child: FilledButton(
-                  onPressed: isSubmitting ? null : _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.info,
-                    foregroundColor: AppColors.textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.textPrimary,
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(kSpacingM),
+                      children: <Widget>[
+                        clubs.when(
+                          loading: () => const Padding(
+                            padding: EdgeInsets.only(bottom: kSpacingM),
+                            child: LinearProgressIndicator(
+                              color: AppColors.info,
+                              backgroundColor: AppColors.surface,
+                            ),
                           ),
-                        )
-                      : const Text('Guardar'),
-                ),
-              ),
-              const SizedBox(height: kSpacingS),
-              SizedBox(
-                height: kMinTouchTarget,
-                child: TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                          error: (Object e, StackTrace s) => const Padding(
+                            padding: EdgeInsets.only(bottom: kSpacingM),
+                            child: Text(
+                              'No se pudieron cargar los clubes.',
+                              style: TextStyle(color: AppColors.error),
+                            ),
+                          ),
+                          data: (List<Club> items) =>
+                              AdminDropdownField<String>(
+                                label: 'Club',
+                                hint: 'Selecciona un club',
+                                value: _clubId,
+                                items: <String, String>{
+                                  for (final Club c in items) c.id: c.name,
+                                },
+                                onChanged: _onClubChanged,
+                              ),
+                        ),
+                        teamsAsync.when(
+                          loading: () => const Padding(
+                            padding: EdgeInsets.only(bottom: kSpacingM),
+                            child: LinearProgressIndicator(
+                              color: AppColors.info,
+                              backgroundColor: AppColors.surface,
+                            ),
+                          ),
+                          error: (Object e, StackTrace s) => const Padding(
+                            padding: EdgeInsets.only(bottom: kSpacingM),
+                            child: Text(
+                              'No se pudieron cargar los equipos.',
+                              style: TextStyle(color: AppColors.error),
+                            ),
+                          ),
+                          data: (_) => Column(
+                            children: <Widget>[
+                              AdminDropdownField<String>(
+                                label: 'Equipo local',
+                                hint: 'Selecciona el equipo local',
+                                value: _homeTeamId,
+                                items: homeOptions,
+                                onChanged: (String? value) =>
+                                    setState(() => _homeTeamId = value),
+                              ),
+                              AdminDropdownField<String>(
+                                label: 'Equipo visitante',
+                                hint: 'Selecciona el equipo visitante',
+                                value: _awayTeamId,
+                                items: awayOptions,
+                                onChanged: (String? value) =>
+                                    setState(() => _awayTeamId = value),
+                              ),
+                            ],
+                          ),
+                        ),
+                        AdminFormField(
+                          controller: _scheduledAt,
+                          label: 'Fecha y hora',
+                          hint: 'dd/mm/aaaa hh:mm',
+                          readOnly: true,
+                          onTap: _pickScheduledAt,
+                        ),
+                        const SizedBox(height: kSpacingL),
+                        SizedBox(
+                          height: kMinTouchTarget,
+                          child: FilledButton(
+                            onPressed: isSubmitting ? null : _save,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.info,
+                              foregroundColor: AppColors.textPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  )
+                                : const Text('Guardar'),
+                          ),
+                        ),
+                        const SizedBox(height: kSpacingS),
+                        SizedBox(
+                          height: kMinTouchTarget,
+                          child: TextButton(
+                            onPressed: isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                            ),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Text('Cancelar'),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

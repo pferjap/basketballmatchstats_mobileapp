@@ -66,6 +66,7 @@ class MatchRepositoryImpl implements MatchRepository {
   @override
   Future<Match> createMatch(CreateMatchParams params) async {
     final model = await remote.createMatch(<String, dynamic>{
+      'clubId': params.clubId,
       'homeTeamId': params.homeTeamId,
       'awayTeamId': params.awayTeamId,
       'scheduledAt': params.scheduledAt.toUtc().toIso8601String(),

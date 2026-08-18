@@ -4,19 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_form_field.dart';
+import '../../../../core/widgets/entity_avatar_picker.dart';
 import '../../../clubs/domain/entities/club.dart';
 import '../../domain/entities/team.dart';
 import '../../domain/repositories/team_repository.dart';
 import '../providers/team_form_provider.dart';
 
-/// Create/edit form for a team (Plan.md T-028).
-///
-/// Pops with `true` once the team has been saved so the caller can refresh its
-/// list; pops with no result when cancelled.
 class TeamFormPage extends ConsumerStatefulWidget {
   const TeamFormPage({this.team, super.key});
 
-  /// The team being edited, or `null` to create a new one.
   final Team? team;
 
   @override
@@ -26,8 +22,6 @@ class TeamFormPage extends ConsumerStatefulWidget {
 class _TeamFormPageState extends ConsumerState<TeamFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
-  late final TextEditingController _category;
-  late final TextEditingController _logoUrl;
   String? _clubId;
 
   bool get _isEditing => widget.team != null;
@@ -37,22 +31,26 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
     super.initState();
     final team = widget.team;
     _name = TextEditingController(text: team?.name ?? '');
-    _category = TextEditingController(text: team?.category ?? '');
-    _logoUrl = TextEditingController(text: team?.logoUrl ?? '');
     _clubId = team?.clubId;
   }
 
   @override
   void dispose() {
     _name.dispose();
-    _category.dispose();
-    _logoUrl.dispose();
     super.dispose();
   }
 
-  String? _optional(TextEditingController controller) {
-    final value = controller.text.trim();
-    return value.isEmpty ? null : value;
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'El nombre del equipo es obligatorio.';
+    }
+    if (value.trim().length < 2) {
+      return 'El nombre debe tener al menos 2 caracteres.';
+    }
+    if (value.trim().length > 120) {
+      return 'El nombre no puede superar 120 caracteres.';
+    }
+    return null;
   }
 
   Future<void> _save() async {
@@ -76,22 +74,12 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
     final bool saved;
     if (team == null) {
       saved = await controller.create(
-        CreateTeamParams(
-          name: _name.text.trim(),
-          clubId: clubId,
-          category: _optional(_category),
-          logoUrl: _optional(_logoUrl),
-        ),
+        CreateTeamParams(name: _name.text.trim(), clubId: clubId),
       );
     } else {
       saved = await controller.update(
         team.id,
-        UpdateTeamParams(
-          name: _name.text.trim(),
-          clubId: clubId,
-          category: _optional(_category),
-          logoUrl: _optional(_logoUrl),
-        ),
+        UpdateTeamParams(name: _name.text.trim(), clubId: clubId),
       );
     }
 
@@ -133,78 +121,84 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
         ),
       ),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(kSpacingM),
-            children: <Widget>[
-              AdminFormField(
-                controller: _name,
-                label: 'Nombre del equipo',
-                hint: 'Tigres Senior A',
-                validator: (String? value) =>
-                    (value == null || value.trim().isEmpty)
-                    ? 'El nombre del equipo es obligatorio.'
-                    : null,
-                textInputAction: TextInputAction.next,
-              ),
-              _ClubDropdown(
-                clubs: clubs,
-                value: _clubId,
-                onChanged: (String? value) => setState(() => _clubId = value),
-              ),
-              AdminFormField(
-                controller: _category,
-                label: 'Categoría',
-                hint: 'Senior',
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _logoUrl,
-                label: 'URL del escudo',
-                hint: 'https://…/escudo.png',
-                keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.done,
-              ),
-              const SizedBox(height: kSpacingL),
-              SizedBox(
-                height: kMinTouchTarget,
-                child: FilledButton(
-                  onPressed: isSubmitting ? null : _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.info,
-                    foregroundColor: AppColors.textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final avatarHeight = constraints.maxHeight * 0.20;
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: <Widget>[
+                  SizedBox(
+                    height: avatarHeight,
+                    child: Center(
+                      child: EntityAvatarPicker(
+                        iconData: Icons.groups_outlined,
+                        currentImageUrl: widget.team?.logoUrl,
+                        onImageSelected: (_) {},
+                      ),
                     ),
                   ),
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.textPrimary,
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(kSpacingM),
+                      children: <Widget>[
+                        AdminFormField(
+                          controller: _name,
+                          label: 'Nombre del equipo',
+                          hint: 'Tigres Senior A',
+                          validator: _validateName,
+                          textInputAction: TextInputAction.done,
+                        ),
+                        _ClubDropdown(
+                          clubs: clubs,
+                          value: _clubId,
+                          onChanged: (String? value) =>
+                              setState(() => _clubId = value),
+                        ),
+                        const SizedBox(height: kSpacingL),
+                        SizedBox(
+                          height: kMinTouchTarget,
+                          child: FilledButton(
+                            onPressed: isSubmitting ? null : _save,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.info,
+                              foregroundColor: AppColors.textPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  )
+                                : const Text('Guardar'),
                           ),
-                        )
-                      : const Text('Guardar'),
-                ),
-              ),
-              const SizedBox(height: kSpacingS),
-              SizedBox(
-                height: kMinTouchTarget,
-                child: TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                        ),
+                        const SizedBox(height: kSpacingS),
+                        SizedBox(
+                          height: kMinTouchTarget,
+                          child: TextButton(
+                            onPressed: isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                            ),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Text('Cancelar'),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

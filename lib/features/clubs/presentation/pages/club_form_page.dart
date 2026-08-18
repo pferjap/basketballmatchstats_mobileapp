@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_form_field.dart';
+import '../../../../core/widgets/entity_avatar_picker.dart';
 import '../../domain/entities/club.dart';
 import '../../domain/repositories/club_repository.dart';
 import '../providers/club_form_provider.dart';
 
-/// Create/edit form for a club (Plan.md T-027).
-///
-/// Pops with `true` once the club has been saved so the caller can refresh its
-/// list; pops with no result when cancelled.
 class ClubFormPage extends ConsumerStatefulWidget {
   const ClubFormPage({this.club, super.key});
 
-  /// The club being edited, or `null` to create a new one.
   final Club? club;
 
   @override
@@ -27,9 +22,6 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _city;
-  late final TextEditingController _country;
-  late final TextEditingController _foundedYear;
-  late final TextEditingController _logoUrl;
 
   bool get _isEditing => widget.club != null;
 
@@ -39,20 +31,12 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
     final club = widget.club;
     _name = TextEditingController(text: club?.name ?? '');
     _city = TextEditingController(text: club?.city ?? '');
-    _country = TextEditingController(text: club?.country ?? '');
-    _foundedYear = TextEditingController(
-      text: club?.foundedYear?.toString() ?? '',
-    );
-    _logoUrl = TextEditingController(text: club?.logoUrl ?? '');
   }
 
   @override
   void dispose() {
     _name.dispose();
     _city.dispose();
-    _country.dispose();
-    _foundedYear.dispose();
-    _logoUrl.dispose();
     super.dispose();
   }
 
@@ -60,25 +44,22 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
     if (value == null || value.trim().isEmpty) {
       return 'El nombre del club es obligatorio.';
     }
-    return null;
-  }
-
-  String? _validateYear(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return null;
+    if (value.trim().length < 2) {
+      return 'El nombre debe tener al menos 2 caracteres.';
     }
-    final year = int.tryParse(value.trim());
-    if (year == null) {
-      return 'Introduce un año válido.';
-    }
-    if (year < 1850 || year > DateTime.now().year) {
-      return 'El año debe estar entre 1850 y ${DateTime.now().year}.';
+    if (value.trim().length > 120) {
+      return 'El nombre no puede superar 120 caracteres.';
     }
     return null;
   }
 
-  /// Empty text means "no value"; for an edit that leaves the stored value
-  /// untouched, since the repository only sends non-null fields.
+  String? _validateCity(String? value) {
+    if (value != null && value.trim().length > 120) {
+      return 'La ciudad no puede superar 120 caracteres.';
+    }
+    return null;
+  }
+
   String? _optional(TextEditingController controller) {
     final value = controller.text.trim();
     return value.isEmpty ? null : value;
@@ -89,30 +70,17 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
       return;
     }
     final controller = ref.read(clubFormControllerProvider.notifier);
-    final year = _optional(_foundedYear);
     final club = widget.club;
 
     final bool saved;
     if (club == null) {
       saved = await controller.create(
-        CreateClubParams(
-          name: _name.text.trim(),
-          city: _optional(_city),
-          country: _optional(_country),
-          foundedYear: year == null ? null : int.parse(year),
-          logoUrl: _optional(_logoUrl),
-        ),
+        CreateClubParams(name: _name.text.trim(), city: _optional(_city)),
       );
     } else {
       saved = await controller.update(
         club.id,
-        UpdateClubParams(
-          name: _name.text.trim(),
-          city: _optional(_city),
-          country: _optional(_country),
-          foundedYear: year == null ? null : int.parse(year),
-          logoUrl: _optional(_logoUrl),
-        ),
+        UpdateClubParams(name: _name.text.trim(), city: _optional(_city)),
       );
     }
 
@@ -153,88 +121,85 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
         ),
       ),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(kSpacingM),
-            children: <Widget>[
-              AdminFormField(
-                controller: _name,
-                label: 'Nombre del club',
-                hint: 'Tigres Basket',
-                validator: _validateName,
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _city,
-                label: 'Ciudad',
-                hint: 'Madrid',
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _country,
-                label: 'País',
-                hint: 'España',
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _foundedYear,
-                label: 'Año de fundación',
-                hint: '2018',
-                validator: _validateYear,
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(4),
-                ],
-                textInputAction: TextInputAction.next,
-              ),
-              AdminFormField(
-                controller: _logoUrl,
-                label: 'URL del escudo',
-                hint: 'https://…/escudo.png',
-                keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.done,
-              ),
-              const SizedBox(height: kSpacingL),
-              SizedBox(
-                height: kMinTouchTarget,
-                child: FilledButton(
-                  onPressed: isSubmitting ? null : _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.info,
-                    foregroundColor: AppColors.textPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final avatarHeight = constraints.maxHeight * 0.20;
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: <Widget>[
+                  SizedBox(
+                    height: avatarHeight,
+                    child: Center(
+                      child: EntityAvatarPicker(
+                        iconData: Icons.shield_outlined,
+                        currentImageUrl: widget.club?.logoUrl,
+                        onImageSelected: (_) {},
+                      ),
                     ),
                   ),
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.textPrimary,
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(kSpacingM),
+                      children: <Widget>[
+                        AdminFormField(
+                          controller: _name,
+                          label: 'Nombre del club',
+                          hint: 'Tigres Basket',
+                          validator: _validateName,
+                          textInputAction: TextInputAction.next,
+                        ),
+                        AdminFormField(
+                          controller: _city,
+                          label: 'Ciudad',
+                          hint: 'Madrid',
+                          validator: _validateCity,
+                          textInputAction: TextInputAction.done,
+                        ),
+                        const SizedBox(height: kSpacingL),
+                        SizedBox(
+                          height: kMinTouchTarget,
+                          child: FilledButton(
+                            onPressed: isSubmitting ? null : _save,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.info,
+                              foregroundColor: AppColors.textPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  )
+                                : const Text('Guardar'),
                           ),
-                        )
-                      : const Text('Guardar'),
-                ),
-              ),
-              const SizedBox(height: kSpacingS),
-              SizedBox(
-                height: kMinTouchTarget,
-                child: TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                        ),
+                        const SizedBox(height: kSpacingS),
+                        SizedBox(
+                          height: kMinTouchTarget,
+                          child: TextButton(
+                            onPressed: isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                            ),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Text('Cancelar'),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

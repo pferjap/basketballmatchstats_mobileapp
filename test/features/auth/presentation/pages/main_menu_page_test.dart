@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoop_analytics/app_router.dart';
+import 'package:hoop_analytics/core/config/env_config.dart';
+import 'package:hoop_analytics/core/config/environment.dart';
 import 'package:hoop_analytics/core/theme/app_theme.dart';
 import 'package:hoop_analytics/features/auth/domain/entities/user.dart';
 import 'package:hoop_analytics/features/auth/domain/repositories/auth_repository.dart';
@@ -24,6 +26,7 @@ Future<ProviderContainer> _pumpMenu(
   WidgetTester tester,
   UserRole role,
 ) async {
+  EnvConfig.init(Environment.dev);
   final repository = _MockAuthRepository();
   when(() => repository.getCurrentUser()).thenAnswer((_) async => null);
   when(() => repository.logout()).thenAnswer((_) async {});
@@ -63,8 +66,6 @@ String _location(ProviderContainer container) => container
 
 const _tomarAnotaciones = 'Tomar anotaciones';
 const _asistir = 'Asistir a un partido';
-const _estadisticas = 'Estadísticas y resultados';
-const _administrarEquipo = 'Administrar mi equipo';
 const _panelAdmin = 'Panel de administración';
 
 void main() {
@@ -78,14 +79,11 @@ void main() {
     expect(find.text('ADMINISTRACIÓN'), findsOneWidget);
   });
 
-  testWidgets('viewer sees only spectator and statistics cards',
-      (tester) async {
+  testWidgets('viewer sees only the spectator card', (tester) async {
     await _pumpMenu(tester, UserRole.viewer);
 
     expect(find.text(_asistir), findsOneWidget);
-    expect(find.text(_estadisticas), findsOneWidget);
     expect(find.text(_tomarAnotaciones), findsNothing);
-    expect(find.text(_administrarEquipo), findsNothing);
     expect(find.text(_panelAdmin), findsNothing);
   });
 
@@ -94,40 +92,31 @@ void main() {
 
     expect(find.text(_tomarAnotaciones), findsOneWidget);
     expect(find.text(_asistir), findsOneWidget);
-    expect(find.text(_estadisticas), findsOneWidget);
-    expect(find.text(_administrarEquipo), findsNothing);
     expect(find.text(_panelAdmin), findsNothing);
   });
 
-  testWidgets('coach sees team administration but not annotation',
-      (tester) async {
+  testWidgets('coach sees only the spectator card', (tester) async {
     await _pumpMenu(tester, UserRole.coach);
 
-    expect(find.text(_administrarEquipo), findsOneWidget);
     expect(find.text(_asistir), findsOneWidget);
-    expect(find.text(_estadisticas), findsOneWidget);
     expect(find.text(_tomarAnotaciones), findsNothing);
     expect(find.text(_panelAdmin), findsNothing);
   });
 
-  testWidgets('club admin sees every card except the admin panel',
+  testWidgets('club admin sees annotation and spectator but not admin panel',
       (tester) async {
     await _pumpMenu(tester, UserRole.clubAdmin);
 
     expect(find.text(_tomarAnotaciones), findsOneWidget);
     expect(find.text(_asistir), findsOneWidget);
-    expect(find.text(_estadisticas), findsOneWidget);
-    expect(find.text(_administrarEquipo), findsOneWidget);
     expect(find.text(_panelAdmin), findsNothing);
   });
 
-  testWidgets('super admin sees all five cards', (tester) async {
+  testWidgets('super admin sees all three cards', (tester) async {
     await _pumpMenu(tester, UserRole.superAdmin);
 
     expect(find.text(_tomarAnotaciones), findsOneWidget);
     expect(find.text(_asistir), findsOneWidget);
-    expect(find.text(_estadisticas), findsOneWidget);
-    expect(find.text(_administrarEquipo), findsOneWidget);
     expect(find.text(_panelAdmin), findsOneWidget);
   });
 
@@ -137,7 +126,6 @@ void main() {
     final card = find.text(_panelAdmin);
     await tester.ensureVisible(card);
     await tester.tap(card);
-    await tester.pumpAndSettle();
 
     expect(_location(container), AppRoutes.adminPanel);
   });
