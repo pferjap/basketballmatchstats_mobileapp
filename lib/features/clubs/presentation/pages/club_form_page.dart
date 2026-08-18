@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_form_field.dart';
@@ -8,6 +9,7 @@ import '../../../../core/widgets/entity_avatar_picker.dart';
 import '../../domain/entities/club.dart';
 import '../../domain/repositories/club_repository.dart';
 import '../providers/club_form_provider.dart';
+import '../providers/clubs_providers.dart';
 
 class ClubFormPage extends ConsumerStatefulWidget {
   const ClubFormPage({this.club, super.key});
@@ -22,6 +24,9 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _city;
+  String? _logoUrl;
+  PickedImage? _pendingImage;
+  bool _uploadingImage = false;
 
   bool get _isEditing => widget.club != null;
 
@@ -31,6 +36,7 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
     final club = widget.club;
     _name = TextEditingController(text: club?.name ?? '');
     _city = TextEditingController(text: club?.city ?? '');
+    _logoUrl = club?.logoUrl;
   }
 
   @override
@@ -65,6 +71,53 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
     return value.isEmpty ? null : value;
   }
 
+  Future<void> _onImagePicked(PickedImage image) async {
+    final club = widget.club;
+    if (club == null) {
+      // No id yet: keep the picked image and upload it after the club is saved.
+      setState(() => _pendingImage = image);
+      return;
+    }
+    setState(() {
+      _pendingImage = image;
+      _uploadingImage = true;
+    });
+    try {
+      final updated = await ref
+          .read(clubRepositoryProvider)
+          .uploadClubLogo(
+            club.id,
+            bytes: image.bytes,
+            filename: image.filename,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _logoUrl = updated.logoUrl;
+        _pendingImage = null;
+        _uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Imagen actualizada.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } on AppException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pendingImage = null;
+        _uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -72,22 +125,49 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
     final controller = ref.read(clubFormControllerProvider.notifier);
     final club = widget.club;
 
-    final bool saved;
-    if (club == null) {
-      saved = await controller.create(
-        CreateClubParams(name: _name.text.trim(), city: _optional(_city)),
-      );
-    } else {
-      saved = await controller.update(
-        club.id,
-        UpdateClubParams(name: _name.text.trim(), city: _optional(_city)),
-      );
-    }
+    final Club? saved = club == null
+        ? await controller.create(
+            CreateClubParams(name: _name.text.trim(), city: _optional(_city)),
+          )
+        : await controller.update(
+            club.id,
+            UpdateClubParams(name: _name.text.trim(), city: _optional(_city)),
+          );
 
     if (!mounted) {
       return;
     }
-    if (saved) {
+    if (saved != null) {
+      final pending = _pendingImage;
+      if (pending != null) {
+        try {
+          await ref
+              .read(clubRepositoryProvider)
+              .uploadClubLogo(
+                saved.id,
+                bytes: pending.bytes,
+                filename: pending.filename,
+              );
+        } on AppException catch (error) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Club guardado, pero no se pudo subir la imagen: '
+                '${error.message}',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          Navigator.of(context).pop(true);
+          return;
+        }
+      }
+      if (!mounted) {
+        return;
+      }
       Navigator.of(context).pop(true);
       return;
     }
@@ -133,8 +213,10 @@ class _ClubFormPageState extends ConsumerState<ClubFormPage> {
                     child: Center(
                       child: EntityAvatarPicker(
                         iconData: Icons.shield_outlined,
-                        currentImageUrl: widget.club?.logoUrl,
-                        onImageSelected: (_) {},
+                        currentImageUrl: _logoUrl,
+                        pickedImageBytes: _pendingImage?.bytes,
+                        isBusy: _uploadingImage,
+                        onImagePicked: _onImagePicked,
                       ),
                     ),
                   ),

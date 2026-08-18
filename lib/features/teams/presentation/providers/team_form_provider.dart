@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../clubs/domain/entities/club.dart';
 import '../../../clubs/presentation/providers/clubs_providers.dart';
+import '../../domain/entities/team.dart';
 import '../../domain/repositories/team_repository.dart';
 import 'teams_providers.dart';
 
@@ -49,24 +50,24 @@ class TeamFormController extends AutoDisposeNotifier<TeamFormState> {
   @override
   TeamFormState build() => const TeamFormState();
 
-  /// Creates a team. Returns `true` on success.
-  Future<bool> create(CreateTeamParams params) =>
+  /// Creates a team. Returns the persisted team, or `null` on failure.
+  Future<Team?> create(CreateTeamParams params) =>
       _submit(() => _repository.createTeam(params));
 
-  /// Updates [teamId]. Returns `true` on success.
-  Future<bool> update(String teamId, UpdateTeamParams params) =>
+  /// Updates [teamId]. Returns the persisted team, or `null` on failure.
+  Future<Team?> update(String teamId, UpdateTeamParams params) =>
       _submit(() => _repository.updateTeam(teamId, params));
 
-  Future<bool> _submit(Future<void> Function() action) async {
+  Future<Team?> _submit(Future<Team> Function() action) async {
     state = const TeamFormState(isSubmitting: true);
     try {
-      await action();
+      final team = await action();
+      state = const TeamFormState();
+      return team;
     } on AppException catch (error) {
       state = TeamFormState(errorMessage: error.message);
-      return false;
+      return null;
     }
-    state = const TeamFormState();
-    return true;
   }
 }
 

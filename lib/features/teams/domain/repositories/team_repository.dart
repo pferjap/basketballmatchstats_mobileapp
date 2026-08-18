@@ -60,4 +60,11 @@ abstract interface class TeamRepository {
 
   /// Permanently removes a team.
   Future<void> deleteTeam(String teamId);
+
+  /// Uploads a new logo for [teamId] and returns the updated team.
+  Future<Team> uploadTeamLogo(
+    String teamId, {
+    required List<int> bytes,
+    required String filename,
+  });
 }

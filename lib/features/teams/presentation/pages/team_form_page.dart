@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_form_field.dart';
@@ -9,6 +10,7 @@ import '../../../clubs/domain/entities/club.dart';
 import '../../domain/entities/team.dart';
 import '../../domain/repositories/team_repository.dart';
 import '../providers/team_form_provider.dart';
+import '../providers/teams_providers.dart';
 
 class TeamFormPage extends ConsumerStatefulWidget {
   const TeamFormPage({this.team, super.key});
@@ -23,6 +25,9 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   String? _clubId;
+  String? _logoUrl;
+  PickedImage? _pendingImage;
+  bool _uploadingImage = false;
 
   bool get _isEditing => widget.team != null;
 
@@ -32,6 +37,7 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
     final team = widget.team;
     _name = TextEditingController(text: team?.name ?? '');
     _clubId = team?.clubId;
+    _logoUrl = team?.logoUrl;
   }
 
   @override
@@ -53,6 +59,53 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
     return null;
   }
 
+  Future<void> _onImagePicked(PickedImage image) async {
+    final team = widget.team;
+    if (team == null) {
+      // No id yet: keep the picked image and upload it after the team is saved.
+      setState(() => _pendingImage = image);
+      return;
+    }
+    setState(() {
+      _pendingImage = image;
+      _uploadingImage = true;
+    });
+    try {
+      final updated = await ref
+          .read(teamRepositoryProvider)
+          .uploadTeamLogo(
+            team.id,
+            bytes: image.bytes,
+            filename: image.filename,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _logoUrl = updated.logoUrl;
+        _pendingImage = null;
+        _uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Imagen actualizada.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } on AppException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pendingImage = null;
+        _uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -71,22 +124,49 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
     final controller = ref.read(teamFormControllerProvider.notifier);
     final team = widget.team;
 
-    final bool saved;
-    if (team == null) {
-      saved = await controller.create(
-        CreateTeamParams(name: _name.text.trim(), clubId: clubId),
-      );
-    } else {
-      saved = await controller.update(
-        team.id,
-        UpdateTeamParams(name: _name.text.trim(), clubId: clubId),
-      );
-    }
+    final Team? saved = team == null
+        ? await controller.create(
+            CreateTeamParams(name: _name.text.trim(), clubId: clubId),
+          )
+        : await controller.update(
+            team.id,
+            UpdateTeamParams(name: _name.text.trim(), clubId: clubId),
+          );
 
     if (!mounted) {
       return;
     }
-    if (saved) {
+    if (saved != null) {
+      final pending = _pendingImage;
+      if (pending != null) {
+        try {
+          await ref
+              .read(teamRepositoryProvider)
+              .uploadTeamLogo(
+                saved.id,
+                bytes: pending.bytes,
+                filename: pending.filename,
+              );
+        } on AppException catch (error) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Equipo guardado, pero no se pudo subir la imagen: '
+                '${error.message}',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          Navigator.of(context).pop(true);
+          return;
+        }
+      }
+      if (!mounted) {
+        return;
+      }
       Navigator.of(context).pop(true);
       return;
     }
@@ -133,8 +213,10 @@ class _TeamFormPageState extends ConsumerState<TeamFormPage> {
                     child: Center(
                       child: EntityAvatarPicker(
                         iconData: Icons.groups_outlined,
-                        currentImageUrl: widget.team?.logoUrl,
-                        onImageSelected: (_) {},
+                        currentImageUrl: _logoUrl,
+                        pickedImageBytes: _pendingImage?.bytes,
+                        isBusy: _uploadingImage,
+                        onImagePicked: _onImagePicked,
                       ),
                     ),
                   ),

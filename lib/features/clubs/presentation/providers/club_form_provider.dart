@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../../domain/entities/club.dart';
 import '../../domain/repositories/club_repository.dart';
 import 'clubs_providers.dart';
 
@@ -41,24 +42,24 @@ class ClubFormController extends AutoDisposeNotifier<ClubFormState> {
   @override
   ClubFormState build() => const ClubFormState();
 
-  /// Creates a club. Returns `true` on success.
-  Future<bool> create(CreateClubParams params) =>
+  /// Creates a club. Returns the persisted club, or `null` on failure.
+  Future<Club?> create(CreateClubParams params) =>
       _submit(() => _repository.createClub(params));
 
-  /// Updates [clubId]. Returns `true` on success.
-  Future<bool> update(String clubId, UpdateClubParams params) =>
+  /// Updates [clubId]. Returns the persisted club, or `null` on failure.
+  Future<Club?> update(String clubId, UpdateClubParams params) =>
       _submit(() => _repository.updateClub(clubId, params));
 
-  Future<bool> _submit(Future<void> Function() action) async {
+  Future<Club?> _submit(Future<Club> Function() action) async {
     state = const ClubFormState(isSubmitting: true);
     try {
-      await action();
+      final club = await action();
+      state = const ClubFormState();
+      return club;
     } on AppException catch (error) {
       state = ClubFormState(errorMessage: error.message);
-      return false;
+      return null;
     }
-    state = const ClubFormState();
-    return true;
   }
 }
 

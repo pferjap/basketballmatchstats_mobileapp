@@ -76,4 +76,11 @@ abstract interface class PlayerRepository {
 
   /// Permanently removes a player.
   Future<void> deletePlayer(String playerId);
+
+  /// Uploads a new photo for [playerId] and returns the updated player.
+  Future<Player> uploadPlayerPhoto(
+    String playerId, {
+    required List<int> bytes,
+    required String filename,
+  });
 }

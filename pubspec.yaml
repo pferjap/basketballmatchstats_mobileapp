@@ -70,6 +70,7 @@ dependencies:
   # Reads the app version shown on the settings screen. Already present
   # transitively via sentry_flutter; declared here because we use it directly.
   package_info_plus: ^8.0.0
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

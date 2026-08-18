@@ -86,6 +86,24 @@ class PlayerRemoteDataSource {
     ApiResponseParser.data(body, (_) => null);
   }
 
+  /// `POST /players/:id/photo` — uploads a player photo (multipart) and returns
+  /// the updated player.
+  Future<PlayerModel> uploadPhoto(
+    String playerId, {
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final form = FormData.fromMap(<String, dynamic>{
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final body = await _postMultipart('/players/$playerId/photo', form);
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          PlayerModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
   Future<Map<String, dynamic>> _get(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -105,6 +123,18 @@ class PlayerRemoteDataSource {
     String path, {
     Map<String, dynamic>? data,
   }) async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(path, data: data);
+      return response.data ?? const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _mapDioException(error);
+    }
+  }
+
+  Future<Map<String, dynamic>> _postMultipart(
+    String path,
+    FormData data,
+  ) async {
     try {
       final response = await dio.post<Map<String, dynamic>>(path, data: data);
       return response.data ?? const <String, dynamic>{};

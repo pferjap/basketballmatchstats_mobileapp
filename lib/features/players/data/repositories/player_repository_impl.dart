@@ -82,4 +82,18 @@ class PlayerRepositoryImpl implements PlayerRepository {
 
   @override
   Future<void> deletePlayer(String playerId) => remote.deletePlayer(playerId);
+
+  @override
+  Future<Player> uploadPlayerPhoto(
+    String playerId, {
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final model = await remote.uploadPhoto(
+      playerId,
+      bytes: bytes,
+      filename: filename,
+    );
+    return model.toEntity();
+  }
 }

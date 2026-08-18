@@ -59,4 +59,11 @@ abstract interface class ClubRepository {
 
   /// Permanently removes a club.
   Future<void> deleteClub(String clubId);
+
+  /// Uploads a new logo for [clubId] and returns the updated club.
+  Future<Club> uploadClubLogo(
+    String clubId, {
+    required List<int> bytes,
+    required String filename,
+  });
 }

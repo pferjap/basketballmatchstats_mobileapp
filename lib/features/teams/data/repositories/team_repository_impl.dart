@@ -67,4 +67,18 @@ class TeamRepositoryImpl implements TeamRepository {
 
   @override
   Future<void> deleteTeam(String teamId) => remote.deleteTeam(teamId);
+
+  @override
+  Future<Team> uploadTeamLogo(
+    String teamId, {
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final model = await remote.uploadLogo(
+      teamId,
+      bytes: bytes,
+      filename: filename,
+    );
+    return model.toEntity();
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/ui_constants.dart';
 import '../../../../core/widgets/admin/admin_dropdown_field.dart';
@@ -11,6 +12,7 @@ import '../../../teams/domain/entities/team.dart';
 import '../../domain/entities/player.dart';
 import '../../domain/repositories/player_repository.dart';
 import '../providers/player_form_provider.dart';
+import '../providers/players_providers.dart';
 
 class PlayerFormPage extends ConsumerStatefulWidget {
   const PlayerFormPage({this.player, super.key});
@@ -28,6 +30,9 @@ class _PlayerFormPageState extends ConsumerState<PlayerFormPage> {
   late final TextEditingController _jerseyNumber;
   String? _teamId;
   PlayerPosition? _position;
+  String? _photoUrl;
+  PickedImage? _pendingImage;
+  bool _uploadingImage = false;
 
   bool get _isEditing => widget.player != null;
 
@@ -42,6 +47,7 @@ class _PlayerFormPageState extends ConsumerState<PlayerFormPage> {
     );
     _teamId = player?.teamId;
     _position = player?.position;
+    _photoUrl = player?.photoUrl;
   }
 
   @override
@@ -88,6 +94,54 @@ class _PlayerFormPageState extends ConsumerState<PlayerFormPage> {
     return null;
   }
 
+  Future<void> _onImagePicked(PickedImage image) async {
+    final player = widget.player;
+    if (player == null) {
+      // No id yet: keep the picked image and upload it after the player is
+      // saved.
+      setState(() => _pendingImage = image);
+      return;
+    }
+    setState(() {
+      _pendingImage = image;
+      _uploadingImage = true;
+    });
+    try {
+      final updated = await ref
+          .read(playerRepositoryProvider)
+          .uploadPlayerPhoto(
+            player.id,
+            bytes: image.bytes,
+            filename: image.filename,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _photoUrl = updated.photoUrl;
+        _pendingImage = null;
+        _uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Imagen actualizada.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } on AppException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pendingImage = null;
+        _uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -106,34 +160,61 @@ class _PlayerFormPageState extends ConsumerState<PlayerFormPage> {
     final controller = ref.read(playerFormControllerProvider.notifier);
     final player = widget.player;
 
-    final bool saved;
-    if (player == null) {
-      saved = await controller.create(
-        CreatePlayerParams(
-          firstName: _firstName.text.trim(),
-          lastName: _lastName.text.trim(),
-          teamId: teamId,
-          jerseyNumber: _optionalInt(_jerseyNumber),
-          position: _position,
-        ),
-      );
-    } else {
-      saved = await controller.update(
-        player.id,
-        UpdatePlayerParams(
-          firstName: _firstName.text.trim(),
-          lastName: _lastName.text.trim(),
-          teamId: teamId,
-          jerseyNumber: _optionalInt(_jerseyNumber),
-          position: _position,
-        ),
-      );
-    }
+    final Player? saved = player == null
+        ? await controller.create(
+            CreatePlayerParams(
+              firstName: _firstName.text.trim(),
+              lastName: _lastName.text.trim(),
+              teamId: teamId,
+              jerseyNumber: _optionalInt(_jerseyNumber),
+              position: _position,
+            ),
+          )
+        : await controller.update(
+            player.id,
+            UpdatePlayerParams(
+              firstName: _firstName.text.trim(),
+              lastName: _lastName.text.trim(),
+              teamId: teamId,
+              jerseyNumber: _optionalInt(_jerseyNumber),
+              position: _position,
+            ),
+          );
 
     if (!mounted) {
       return;
     }
-    if (saved) {
+    if (saved != null) {
+      final pending = _pendingImage;
+      if (pending != null) {
+        try {
+          await ref
+              .read(playerRepositoryProvider)
+              .uploadPlayerPhoto(
+                saved.id,
+                bytes: pending.bytes,
+                filename: pending.filename,
+              );
+        } on AppException catch (error) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Jugador guardado, pero no se pudo subir la imagen: '
+                '${error.message}',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          Navigator.of(context).pop(true);
+          return;
+        }
+      }
+      if (!mounted) {
+        return;
+      }
       Navigator.of(context).pop(true);
       return;
     }
@@ -182,8 +263,10 @@ class _PlayerFormPageState extends ConsumerState<PlayerFormPage> {
                     child: Center(
                       child: EntityAvatarPicker(
                         iconData: Icons.person_outline,
-                        currentImageUrl: widget.player?.photoUrl,
-                        onImageSelected: (_) {},
+                        currentImageUrl: _photoUrl,
+                        pickedImageBytes: _pendingImage?.bytes,
+                        isBusy: _uploadingImage,
+                        onImagePicked: _onImagePicked,
                       ),
                     ),
                   ),

@@ -65,4 +65,18 @@ class ClubRepositoryImpl implements ClubRepository {
 
   @override
   Future<void> deleteClub(String clubId) => remote.deleteClub(clubId);
+
+  @override
+  Future<Club> uploadClubLogo(
+    String clubId, {
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final model = await remote.uploadLogo(
+      clubId,
+      bytes: bytes,
+      filename: filename,
+    );
+    return model.toEntity();
+  }
 }

@@ -60,24 +60,24 @@ class PlayerFormController extends AutoDisposeNotifier<PlayerFormState> {
   @override
   PlayerFormState build() => const PlayerFormState();
 
-  /// Creates a player. Returns `true` on success.
-  Future<bool> create(CreatePlayerParams params) =>
+  /// Creates a player. Returns the persisted player, or `null` on failure.
+  Future<Player?> create(CreatePlayerParams params) =>
       _submit(() => _repository.createPlayer(params));
 
-  /// Updates [playerId]. Returns `true` on success.
-  Future<bool> update(String playerId, UpdatePlayerParams params) =>
+  /// Updates [playerId]. Returns the persisted player, or `null` on failure.
+  Future<Player?> update(String playerId, UpdatePlayerParams params) =>
       _submit(() => _repository.updatePlayer(playerId, params));
 
-  Future<bool> _submit(Future<void> Function() action) async {
+  Future<Player?> _submit(Future<Player> Function() action) async {
     state = const PlayerFormState(isSubmitting: true);
     try {
-      await action();
+      final player = await action();
+      state = const PlayerFormState();
+      return player;
     } on AppException catch (error) {
       state = PlayerFormState(errorMessage: error.message);
-      return false;
+      return null;
     }
-    state = const PlayerFormState();
-    return true;
   }
 }
 
