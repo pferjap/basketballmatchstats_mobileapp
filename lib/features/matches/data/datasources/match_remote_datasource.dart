@@ -78,9 +78,9 @@ class MatchRemoteDataSource {
     ApiResponseParser.data(body, (_) => null);
   }
 
-  /// `POST /matches/:id/start` — starts a scheduled match.
+  /// `PATCH /matches/:id/start` — starts a scheduled match.
   Future<MatchModel> startMatch(String matchId) async {
-    final body = await _post('/matches/$matchId/start');
+    final body = await _patch('/matches/$matchId/start');
     return ApiResponseParser.data(
       body,
       (Object? data) =>
@@ -190,6 +190,18 @@ class MatchRemoteDataSource {
   Future<Map<String, dynamic>> _delete(String path) async {
     try {
       final response = await dio.delete<Map<String, dynamic>>(path);
+      return response.data ?? const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _mapDioException(error);
+    }
+  }
+
+  Future<Map<String, dynamic>> _patch(
+    String path, {
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final response = await dio.patch<Map<String, dynamic>>(path, data: data);
       return response.data ?? const <String, dynamic>{};
     } on DioException catch (error) {
       throw _mapDioException(error);

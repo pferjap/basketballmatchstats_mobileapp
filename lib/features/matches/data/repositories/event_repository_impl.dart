@@ -36,14 +36,6 @@ class EventRepositoryImpl implements EventRepository {
     final createdAt = _clock();
     final payload = _payload(matchId, params, id: id, createdAt: createdAt);
 
-    // Persist first so the event survives connectivity loss / app restart.
-    await local.enqueueEvent(
-      id: id,
-      matchId: matchId,
-      eventPayload: jsonEncode(payload),
-      createdAt: createdAt,
-    );
-
     final optimisticEvent = MatchEvent(
       id: id,
       matchId: matchId,
@@ -57,22 +49,52 @@ class EventRepositoryImpl implements EventRepository {
       createdAt: createdAt,
     );
 
+    // Persist first so the event survives connectivity loss / app restart.
+    // If the local DB fails, proceed with the remote call anyway.
+    try {
+      await local.enqueueEvent(
+        id: id,
+        matchId: matchId,
+        eventPayload: jsonEncode(payload),
+        createdAt: createdAt,
+      );
+    } catch (_) {
+      // Local queue failure is non-fatal; the remote call below is the
+      // source of truth.
+    }
+
     try {
       final serverEvent = await remote.recordEvent(matchId, payload);
-      await local.markEventSynced(id);
+      try {
+        await local.markEventSynced(id);
+      } catch (_) {
+        // Best-effort local bookkeeping.
+      }
       return serverEvent.toEntity();
     } on ServerException catch (error) {
       if (classifyStatus(error.statusCode) == SyncOutcome.businessFailed) {
         // 4xx business rejection: mark failed and let the UI roll back.
-        await local.markEventFailed(id);
+        try {
+          await local.markEventFailed(id);
+        } catch (_) {
+          // Best-effort.
+        }
         rethrow;
       }
       // 5xx / timeout: keep queued for the sync service to retry.
-      await local.markEventRetryable(id);
+      try {
+        await local.markEventRetryable(id);
+      } catch (_) {
+        // Best-effort.
+      }
       return optimisticEvent;
     } on NetworkException {
       // Offline: keep queued; the event is safely stored.
-      await local.markEventRetryable(id);
+      try {
+        await local.markEventRetryable(id);
+      } catch (_) {
+        // Best-effort.
+      }
       return optimisticEvent;
     }
   }

@@ -167,6 +167,7 @@ class AnnotationController
 
   /// One-time configuration from the page's [CourtViewArgs]: seeds team ids,
   /// starting period and the base score from the server (best-effort).
+  /// Also loads existing events so re-entering the screen shows the history.
   Future<void> configure(CourtViewArgs args) async {
     if (_configured) return;
     _configured = true;
@@ -189,6 +190,32 @@ class AnnotationController
       );
     } catch (_) {
       // Best-effort: annotation still works from a 0–0 base when offline.
+    }
+
+    // Load previously recorded events so re-entering shows the history.
+    try {
+      final page = await ref
+          .read(matchRepositoryProvider)
+          .getMatchEvents(arg, limit: 100);
+      if (page.items.isNotEmpty) {
+        final defaultAction = kAnnotationActions.first;
+        final loaded = page.items.map((e) {
+          // Find the matching AnnotationAction by eventType, or use a default.
+          final action = kAnnotationActions.cast<AnnotationAction?>().firstWhere(
+                (a) => a!.eventType == e.eventType,
+                orElse: () => null,
+              ) ??
+              defaultAction;
+          return RecordedEvent(
+            event: e,
+            action: action,
+            status: EventSyncStatus.synced,
+          );
+        }).toList(growable: false);
+        state = state.copyWith(events: loaded);
+      }
+    } catch (_) {
+      // Best-effort.
     }
   }
 
@@ -293,13 +320,13 @@ class AnnotationController
         recorded.event.id,
         recorded.copyWith(event: serverEvent, status: EventSyncStatus.synced),
       );
-    } catch (_) {
+    } catch (error) {
       _replace(
         recorded.event.id,
         recorded.copyWith(status: EventSyncStatus.failed),
       );
       state = state.copyWith(
-        errorMessage: 'No se pudo registrar la acción. Reintenta.',
+        errorMessage: 'Error: $error',
       );
     } finally {
       if (state.isRecording) {
