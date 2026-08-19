@@ -24,6 +24,7 @@ class LiveMatchArgs {
     this.awayTeamName = 'Visitante',
     this.awayClubName = '',
     this.competitionLabel,
+    this.totalPeriods = 4,
   });
 
   final String homeTeamId;
@@ -33,6 +34,9 @@ class LiveMatchArgs {
   final String awayTeamName;
   final String awayClubName;
   final String? competitionLabel;
+
+  /// Number of regular quarters configured for the match (no overtime).
+  final int totalPeriods;
 
   String get matchTitle => '$homeTeamName vs $awayTeamName';
 }
@@ -110,6 +114,7 @@ class MatchLivePage extends ConsumerWidget {
             awayClubName: info.awayClubName,
             score: state.score,
             matchId: matchId,
+            periodCount: info.totalPeriods + 1,
           ),
           const Divider(color: AppColors.divider, height: 1),
           Expanded(

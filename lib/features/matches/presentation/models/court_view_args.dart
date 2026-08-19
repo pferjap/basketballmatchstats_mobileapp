@@ -46,13 +46,14 @@ class CourtViewArgs {
     this.initialPeriod = 1,
     this.periodDurationSeconds = 600,
     this.initialClockSeconds,
+    this.totalPeriods = 4,
   });
 
   final CourtTeam home;
   final CourtTeam away;
   final String? competitionLabel;
 
-  /// Period the match starts on (1–4 regulation, 5+ overtime).
+  /// Period the match starts on (1–4 regulation).
   final int initialPeriod;
 
   /// Length of a period in seconds, used by the game clock (default 10:00).
@@ -61,6 +62,9 @@ class CourtViewArgs {
   /// If non-null, the clock starts at this value instead of [periodDurationSeconds].
   /// Used when resuming an in-progress annotation session.
   final int? initialClockSeconds;
+
+  /// Number of regular periods (quarters) configured for the match.
+  final int totalPeriods;
 
   /// A neutral demo roster/teams used when the screen is opened without args
   /// (e.g. deep link) so the annotator UI is still usable.

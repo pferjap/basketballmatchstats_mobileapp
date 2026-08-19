@@ -126,6 +126,9 @@ class _StatusBadge extends StatelessWidget {
       MatchStatus.scheduled => ('PROGRAMADO', AppColors.info),
       MatchStatus.inProgress => ('EN DIRECTO', AppColors.success),
       MatchStatus.finished => ('FINALIZADO', AppColors.textSecondary),
+      MatchStatus.cancelled => ('CANCELADO', AppColors.error),
+      MatchStatus.postponed => ('APLAZADO', AppColors.warning),
+      MatchStatus.suspended => ('SUSPENDIDO', AppColors.warning),
     };
 
     return Container(

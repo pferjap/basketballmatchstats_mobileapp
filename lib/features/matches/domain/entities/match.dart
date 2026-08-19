@@ -2,7 +2,7 @@
 ///
 /// The API string representation lives in the data layer
 /// (`data/models/match_model.dart` — `MatchStatusConverter`).
-enum MatchStatus { scheduled, inProgress, finished }
+enum MatchStatus { scheduled, inProgress, finished, cancelled, postponed, suspended }
 
 /// A basketball match in the domain layer.
 ///
@@ -20,6 +20,9 @@ class Match {
     this.startedAt,
     this.finishedAt,
     this.venue,
+    this.totalPeriods = 4,
+    this.periodDurationMinutes = 10,
+    this.suspensionReason,
   });
 
   final String id;
@@ -39,6 +42,15 @@ class Match {
   /// Court or arena where the match is played, when recorded.
   final String? venue;
 
+  /// Number of regular periods (quarters) configured for the match.
+  final int totalPeriods;
+
+  /// Duration of each period in minutes.
+  final int periodDurationMinutes;
+
+  /// Reason recorded when the match was suspended, when applicable.
+  final String? suspensionReason;
+
   Match copyWith({
     String? id,
     String? homeTeamId,
@@ -50,6 +62,9 @@ class Match {
     DateTime? startedAt,
     DateTime? finishedAt,
     String? venue,
+    int? totalPeriods,
+    int? periodDurationMinutes,
+    String? suspensionReason,
   }) {
     return Match(
       id: id ?? this.id,
@@ -62,6 +77,10 @@ class Match {
       startedAt: startedAt ?? this.startedAt,
       finishedAt: finishedAt ?? this.finishedAt,
       venue: venue ?? this.venue,
+      totalPeriods: totalPeriods ?? this.totalPeriods,
+      periodDurationMinutes:
+          periodDurationMinutes ?? this.periodDurationMinutes,
+      suspensionReason: suspensionReason ?? this.suspensionReason,
     );
   }
 
@@ -78,7 +97,10 @@ class Match {
           other.seasonId == seasonId &&
           other.startedAt == startedAt &&
           other.finishedAt == finishedAt &&
-          other.venue == venue;
+          other.venue == venue &&
+          other.totalPeriods == totalPeriods &&
+          other.periodDurationMinutes == periodDurationMinutes &&
+          other.suspensionReason == suspensionReason;
 
   @override
   int get hashCode => Object.hash(
@@ -92,6 +114,9 @@ class Match {
     startedAt,
     finishedAt,
     venue,
+    totalPeriods,
+    periodDurationMinutes,
+    suspensionReason,
   );
 
   @override

@@ -62,6 +62,92 @@ class MatchesTab extends ConsumerWidget {
     }
   }
 
+  Future<void> _confirmFinish(
+    BuildContext context,
+    WidgetRef ref,
+    Match match,
+  ) async {
+    final confirmed = await showConfirmDeleteDialog(
+      context,
+      title: 'Finalizar partido',
+      message: '¿Seguro que quieres finalizar este partido en curso?',
+      confirmLabel: 'Finalizar',
+    );
+    if (!confirmed) {
+      return;
+    }
+    final error = await ref
+        .read(matchesAdminControllerProvider.notifier)
+        .finishMatch(match.id);
+    if (!context.mounted) return;
+    _showError(context, error);
+  }
+
+  Future<void> _confirmCancel(
+    BuildContext context,
+    WidgetRef ref,
+    Match match,
+  ) async {
+    final confirmed = await showConfirmDeleteDialog(
+      context,
+      title: 'Cancelar partido',
+      message: '¿Seguro que quieres cancelar este partido?',
+      confirmLabel: 'Cancelar partido',
+    );
+    if (!confirmed) {
+      return;
+    }
+    final error = await ref
+        .read(matchesAdminControllerProvider.notifier)
+        .cancelMatch(match.id);
+    if (!context.mounted) return;
+    _showError(context, error);
+  }
+
+  Future<void> _postpone(
+    BuildContext context,
+    WidgetRef ref,
+    Match match,
+  ) async {
+    final now = DateTime.now();
+    final current = match.scheduledAt.isAfter(now) ? match.scheduledAt : now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: now,
+      lastDate: DateTime(now.year + 5),
+      helpText: 'Nueva fecha del partido',
+    );
+    if (date == null || !context.mounted) {
+      return;
+    }
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+      helpText: 'Nueva hora del partido',
+    );
+    if (!context.mounted) {
+      return;
+    }
+    final scheduledAt = time == null
+        ? null
+        : DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final error = await ref
+        .read(matchesAdminControllerProvider.notifier)
+        .postponeMatch(match.id, scheduledAt: scheduledAt);
+    if (!context.mounted) return;
+    _showError(context, error);
+  }
+
+  void _showError(BuildContext context, String? error) {
+    if (!context.mounted || error == null) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error), backgroundColor: AppColors.error),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(matchesAdminControllerProvider);
@@ -99,6 +185,9 @@ class MatchesTab extends ConsumerWidget {
               teamNames: teamNames,
               onEdit: (Match match) => _openForm(context, ref, match: match),
               onDelete: (Match match) => _confirmDelete(context, ref, match),
+              onFinish: (Match match) => _confirmFinish(context, ref, match),
+              onCancel: (Match match) => _confirmCancel(context, ref, match),
+              onPostpone: (Match match) => _postpone(context, ref, match),
             ),
           ),
           PaginationFooter(
@@ -120,12 +209,18 @@ class _MatchesList extends StatelessWidget {
     required this.teamNames,
     required this.onEdit,
     required this.onDelete,
+    required this.onFinish,
+    required this.onCancel,
+    required this.onPostpone,
   });
 
   final MatchesAdminState state;
   final Map<String, String> teamNames;
   final ValueChanged<Match> onEdit;
   final ValueChanged<Match> onDelete;
+  final ValueChanged<Match> onFinish;
+  final ValueChanged<Match> onCancel;
+  final ValueChanged<Match> onPostpone;
 
   @override
   Widget build(BuildContext context) {
@@ -149,12 +244,20 @@ class _MatchesList extends StatelessWidget {
       itemCount: state.matches.length,
       itemBuilder: (BuildContext context, int index) {
         final match = state.matches[index];
+        // Superadmin lifecycle actions only apply to schedulable / live matches.
+        final isScheduled = match.status == MatchStatus.scheduled;
+        final isOngoing = match.status == MatchStatus.inProgress;
         return MatchAdminCard(
           match: match,
           homeTeamName: teamNames[match.homeTeamId] ?? match.homeTeamId,
           awayTeamName: teamNames[match.awayTeamId] ?? match.awayTeamId,
           onEdit: () => onEdit(match),
           onDelete: () => onDelete(match),
+          onFinish: isOngoing ? () => onFinish(match) : null,
+          onCancel: (isScheduled || isOngoing) ? () => onCancel(match) : null,
+          onPostpone: (isScheduled || isOngoing)
+              ? () => onPostpone(match)
+              : null,
         );
       },
     );

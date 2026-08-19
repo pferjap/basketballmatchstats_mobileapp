@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -23,6 +24,8 @@ class MatchFormPage extends ConsumerStatefulWidget {
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _scheduledAt;
+  late final TextEditingController _totalPeriods;
+  late final TextEditingController _periodDuration;
   String? _homeTeamId;
   String? _awayTeamId;
   DateTime? _scheduledAtValue;
@@ -37,6 +40,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _scheduledAt = TextEditingController(
       text: _formatDateTime(match?.scheduledAt),
     );
+    _totalPeriods = TextEditingController(
+      text: (match?.totalPeriods ?? 4).toString(),
+    );
+    _periodDuration = TextEditingController(
+      text: (match?.periodDurationMinutes ?? 10).toString(),
+    );
     _homeTeamId = match?.homeTeamId;
     _awayTeamId = match?.awayTeamId;
   }
@@ -44,6 +53,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   @override
   void dispose() {
     _scheduledAt.dispose();
+    _totalPeriods.dispose();
+    _periodDuration.dispose();
     super.dispose();
   }
 
@@ -57,6 +68,17 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$day/$month/${local.year} $hour:$minute';
+  }
+
+  static String? _validateRange(String? value, int min, int max, String noun) {
+    final parsed = int.tryParse((value ?? '').trim());
+    if (parsed == null) {
+      return 'Introduce un número de $noun.';
+    }
+    if (parsed < min || parsed > max) {
+      return 'Debe estar entre $min y $max $noun.';
+    }
+    return null;
   }
 
   Future<void> _pickScheduledAt() async {
@@ -144,6 +166,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           homeTeamId: homeTeamId!,
           awayTeamId: awayTeamId!,
           scheduledAt: scheduledAt!,
+          totalPeriods: int.tryParse(_totalPeriods.text.trim()) ?? 4,
+          periodDurationMinutes:
+              int.tryParse(_periodDuration.text.trim()) ?? 10,
         ),
       );
     } else {
@@ -290,6 +315,30 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                           readOnly: true,
                           onTap: _pickScheduledAt,
                         ),
+                        if (!_isEditing) ...<Widget>[
+                          AdminFormField(
+                            controller: _totalPeriods,
+                            label: 'Número de cuartos',
+                            hint: '4',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: <TextInputFormatter>[
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: (String? value) =>
+                                _validateRange(value, 1, 8, 'cuartos'),
+                          ),
+                          AdminFormField(
+                            controller: _periodDuration,
+                            label: 'Duración por cuarto (min)',
+                            hint: '10',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: <TextInputFormatter>[
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: (String? value) =>
+                                _validateRange(value, 1, 40, 'minutos'),
+                          ),
+                        ],
                         const SizedBox(height: kSpacingL),
                         SizedBox(
                           height: kMinTouchTarget,

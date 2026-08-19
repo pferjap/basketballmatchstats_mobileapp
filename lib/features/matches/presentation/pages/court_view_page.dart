@@ -94,9 +94,19 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
         ),
         title: PeriodSelector(
           period: state.currentPeriod,
+          totalPeriods: state.totalPeriods,
+          canAdvance: state.isPeriodOver,
           onChanged: controller.setPeriod,
         ),
         centerTitle: true,
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.pause_circle_outline,
+                color: AppColors.textPrimary),
+            tooltip: 'Suspender anotación',
+            onPressed: () => _confirmSuspend(context, controller),
+          ),
+        ],
       ),
       body: Column(
         children: <Widget>[
@@ -170,6 +180,78 @@ class _CourtViewPageState extends ConsumerState<CourtViewPage>
         ),
       ),
     );
+  }
+
+  Future<void> _confirmSuspend(
+    BuildContext context,
+    AnnotationController controller,
+  ) async {
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Suspender anotación'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text(
+                '¿Seguro que quieres suspender la anotación de este partido? '
+                'Indica el motivo.',
+              ),
+              const SizedBox(height: kSpacingM),
+              TextFormField(
+                controller: reasonController,
+                autofocus: true,
+                minLines: 2,
+                maxLines: 4,
+                maxLength: 500,
+                decoration: const InputDecoration(
+                  labelText: 'Motivo',
+                  hintText: 'Describe la causa de la suspensión',
+                ),
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'El motivo es obligatorio'
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.of(dialogContext).pop(true);
+              }
+            },
+            child: const Text('Suspender'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
+
+    final error = await controller.suspend(reasonController.text.trim());
+    reasonController.dispose();
+    if (!context.mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    context.canPop() ? context.pop() : context.go(AppRoutes.home);
   }
 }
 

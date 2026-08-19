@@ -968,7 +968,131 @@ administración.
 
 ---
 
-## Fase 10 — Observabilidad y Polish
+## Fase 10 — Reglas y Ciclo de Vida del Partido
+
+> Fase de refuerzo del dominio de partidos: gestión del ciclo de vida por parte
+> del superadministrador, configuración de cuartos, control de progresión de
+> cuartos, eliminación de prórrogas y suspensión de anotación con causa. Toca
+> tanto la API (`_basketballmatchstats`) como el móvil.
+
+### T-041: Estados de ciclo de vida y configuración del partido (API — dominio + migración)
+
+**Objetivo:** Ampliar el modelo de partido para soportar los nuevos estados y la
+configuración de cuartos (§ regla 2.1, 2.3 y feature [1]).
+**Acciones:**
+1. Ampliar `enum MatchStatus` (Prisma + `match-status.enum.ts`) con `CANCELLED`,
+   `POSTPONED` y `SUSPENDED`.
+2. Añadir al modelo `Match` de Prisma: `totalPeriods Int @default(4)`,
+   `periodDurationMinutes Int @default(10)` y `suspensionReason String?`.
+3. Crear la migración Prisma (`prisma migrate dev --name match_lifecycle_config`)
+   y verificar que `migrate deploy` la aplica en el arranque E2E.
+4. Propagar los nuevos campos por `MatchProperties`/`MatchEntity`,
+   `match.repository.interface.ts` (`UpdateMatchData`), `prisma-match.repository.ts`,
+   `match.mapper.ts` y `match-response.dto.ts`.
+5. Añadir guardas de transición en `MatchEntity`: `canCancel()`, `canPostpone()`,
+   `canSuspend()`, `canResume()` acorde a las reglas.
+**Resultado:** El dominio y la persistencia soportan los nuevos estados y la
+configuración de cuartos, sin romper endpoints existentes.
+
+---
+
+### T-042: Configuración de cuartos en la creación de partido (API — regla 2.1)
+
+**Objetivo:** Permitir configurar "número de cuartos" y "duración de cada cuarto"
+al crear un partido.
+**Acciones:**
+1. Ampliar `CreateMatchDto` con `totalPeriods` (validado `@IsInt` `@Min(1)`
+   `@Max(8)`, opcional, default 4) y `periodDurationMinutes` (`@Min(1)` `@Max(40)`,
+   opcional, default 10).
+2. Persistir ambos en `create-match.use-case.ts` y devolverlos en la respuesta.
+3. Añadir/actualizar tests E2E de creación que verifiquen los valores por defecto
+   y los personalizados.
+**Resultado:** `POST /matches` acepta y persiste la configuración de cuartos.
+
+---
+
+### T-043: Endpoints de gestión del partido (API — feature [1] + reglas 2.2/2.4)
+
+**Objetivo:** Ofrecer al superadministrador el control del ciclo de vida y al
+anotador la suspensión con causa.
+**Acciones:**
+1. Casos de uso nuevos: `cancel-match` (SCHEDULED/ONGOING→CANCELLED),
+   `postpone-match` (SCHEDULED/ONGOING→POSTPONED, opción de nuevo `scheduledAt`),
+   `suspend-match` (ONGOING→SUSPENDED, requiere `reason`). `finish-match` ya
+   existe y cubre "parar/finalizar".
+2. Endpoints en `match.controller.ts` siguiendo el patrón
+   `@Patch(':id/...')` + `@Roles` + `@TenantCheck('match')`:
+   - `PATCH /matches/:id/cancel` — `SUPER_ADMIN`.
+   - `PATCH /matches/:id/postpone` — `SUPER_ADMIN`.
+   - `PATCH /matches/:id/suspend` — `SUPER_ADMIN`, `CLUB_ADMIN`, `COACH` (anotador),
+     body `{ reason: string }` validado (no vacío).
+3. Regla 2.2 (no empezar el siguiente cuarto hasta terminar el anterior): validar
+   en el avance de período (vía `PUT /matches/:id` o caso de uso de avance) que
+   sólo se incrementa `period` cuando el cuarto previo ha finalizado
+   (`gameClock === "00:00"` o evento `QUARTER_END`), y nunca por encima de
+   `totalPeriods` (regla 2.3, sin prórrogas).
+4. Tests E2E para cada transición (happy path + estado inválido + roles).
+**Resultado:** La API expone cancelar/posponer/suspender y hace cumplir la
+progresión de cuartos y la ausencia de prórrogas.
+
+---
+
+### T-044: Data y domain layer del ciclo de vida (Móvil)
+
+**Objetivo:** Reflejar los nuevos estados, configuración y acciones en el móvil.
+**Acciones:**
+1. Ampliar `MatchStatus` (`domain/entities/match.dart`) con `cancelled`,
+   `postponed`, `suspended` y mapearlos en `MatchStatusConverter`
+   (`data/models/match_model.dart`), ida y vuelta.
+2. Añadir a `Match`/`MatchModel` los campos `totalPeriods`,
+   `periodDurationMinutes` y `suspensionReason` (con `copyWith`, `==`, `hashCode`,
+   `fromJson`/`toJson`, `toEntity`).
+3. Ampliar `CreateMatchParams` con `totalPeriods` y `periodDurationMinutes`.
+4. Añadir al `MatchRepository`/impl y a `MatchRemoteDataSource` los métodos
+   `cancelMatch`, `postponeMatch`, `suspendMatch(reason)` y `finishMatch`
+   (PATCH), siguiendo el patrón de `startMatch`.
+**Resultado:** El móvil consume los nuevos estados, configuración y endpoints.
+
+---
+
+### T-045: Formulario de creación de partido — configuración de cuartos (Móvil — regla 2.1)
+
+**Objetivo:** Añadir al formulario los campos de número de cuartos y duración.
+**Acciones:**
+1. En `match_form_page.dart`: inputs para "Número de cuartos" y "Duración por
+   cuarto (min)" con validación (rangos coherentes con la API), valores por
+   defecto 4 y 10.
+2. Enviar los valores en `CreateMatchParams`.
+3. Sembrar `CourtViewArgs.periodDurationSeconds` y el número de cuartos del score
+   header desde la configuración del partido al entrar a anotar/retransmitir.
+**Resultado:** El anotador/administrador define cuartos y duración al crear el
+partido, y la sala de anotación respeta esa configuración.
+
+---
+
+### T-046: UI de ciclo de vida y reglas en anotación (Móvil — features [1], reglas 2.2/2.3/2.4)
+
+**Objetivo:** Exponer las acciones de gestión y hacer cumplir las reglas en la UI.
+**Acciones:**
+1. Superadmin (`match_admin_card.dart` / `matches_admin_provider.dart`): para un
+   partido en curso, acciones "Finalizar", "Cancelar" y "Posponer" que llaman a
+   los endpoints; reflejar los estados nuevos (chips/labels).
+2. Regla 2.2: en Court View, bloquear el avance al siguiente cuarto hasta que el
+   reloj llegue a `00:00`; el selector/botón de siguiente cuarto queda
+   deshabilitado hasta entonces.
+3. Regla 2.3: eliminar prórrogas — quitar `overtimePeriods` y las etiquetas
+   `PRÓRROGA` de `period_selector.dart`/`score_header_widget.dart`; limitar el
+   número de cuartos a `totalPeriods`.
+4. Regla 2.4: acción "Suspender anotación" con diálogo de confirmación y campo de
+   causa/descripción obligatorio; al confirmar, llama a `suspendMatch(reason)` y
+   sale de la sala.
+5. Actualizar/añadir widget tests afectados.
+**Resultado:** El superadministrador gestiona el partido en curso; el anotador no
+puede saltarse cuartos ni usar prórrogas y puede suspender con causa.
+
+---
+
+## Fase 11 — Observabilidad y Polish
 
 ### T-035: Integrar Sentry y logging estructurado
 
@@ -994,7 +1118,7 @@ administración.
 
 ---
 
-## Fase 11 — Testing y CI
+## Fase 12 — Testing y CI
 
 ### T-037: Implementar unit tests del core y domain
 
@@ -1037,7 +1161,7 @@ administración.
 
 ---
 
-## Fase 12 — State Restoration y Final Polish
+## Fase 13 — State Restoration y Final Polish
 
 ### T-040: Implementar state restoration de partido en progreso
 
@@ -1065,10 +1189,11 @@ administración.
 | 7 | T-022 | Listado y selección de partidos |
 | 8 | T-023 a T-031 | Panel de Administración (CRUD clubs, equipos, jugadores, partidos) + Settings. Formularios con layout 20%/80% (avatar/logo + campos DTO), subida de imagen vía `Plan_api.md` §1.5 |
 | 9 | T-032 a T-034 | Registro de usuarios y gestión de privilegios |
-| 10 | T-035 a T-036 | Observabilidad y UX polish |
-| 11 | T-037 a T-039 | Testing y CI/CD |
-| 12 | T-040 | State restoration |
+| 10 | T-041 a T-046 | Reglas y ciclo de vida del partido (estados, cuartos configurables, gestión superadmin, suspensión con causa) |
+| 11 | T-035 a T-036 | Observabilidad y UX polish |
+| 12 | T-037 a T-039 | Testing y CI/CD |
+| 13 | T-040 | State restoration |
 
-**Total: 40 tareas / 12 fases.**
+**Total: 46 tareas / 13 fases.**
 
 > Cada tarea es un commit atómico. Se recomienda hacer PR por fase completa.

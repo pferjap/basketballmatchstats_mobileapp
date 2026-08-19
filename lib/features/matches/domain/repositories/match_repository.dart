@@ -14,6 +14,8 @@ class CreateMatchParams {
     this.competitionId,
     this.seasonId,
     this.venue,
+    this.totalPeriods = 4,
+    this.periodDurationMinutes = 10,
   });
 
   final String clubId;
@@ -23,6 +25,8 @@ class CreateMatchParams {
   final String? competitionId;
   final String? seasonId;
   final String? venue;
+  final int totalPeriods;
+  final int periodDurationMinutes;
 }
 
 /// Input for updating a scheduled match.
@@ -60,6 +64,18 @@ abstract interface class MatchRepository {
 
   /// Starts a scheduled match (`POST /matches/:id/start`).
   Future<Match> startMatch(String matchId);
+
+  /// Finishes an ongoing match (`PATCH /matches/:id/finish`).
+  Future<Match> finishMatch(String matchId);
+
+  /// Cancels a match (`PATCH /matches/:id/cancel`) — superadmin only.
+  Future<Match> cancelMatch(String matchId);
+
+  /// Postpones a match (`PATCH /matches/:id/postpone`), optionally rescheduling.
+  Future<Match> postponeMatch(String matchId, {DateTime? scheduledAt});
+
+  /// Suspends an ongoing match with a cause (`PATCH /matches/:id/suspend`).
+  Future<Match> suspendMatch(String matchId, String reason);
 
   /// Schedules a new match (`POST /matches`) — admin panel (Plan.md T-030).
   Future<Match> createMatch(CreateMatchParams params);

@@ -14,6 +14,9 @@ import '../../domain/entities/match.dart';
       color: AppColors.textSecondary,
       label: 'Finalizado',
     ),
+    MatchStatus.cancelled => (color: AppColors.error, label: 'Cancelado'),
+    MatchStatus.postponed => (color: AppColors.warning, label: 'Pospuesto'),
+    MatchStatus.suspended => (color: AppColors.warning, label: 'Suspendido'),
   };
 }
 
@@ -25,6 +28,9 @@ class MatchAdminCard extends StatelessWidget {
     required this.awayTeamName,
     required this.onEdit,
     required this.onDelete,
+    this.onFinish,
+    this.onCancel,
+    this.onPostpone,
     super.key,
   });
 
@@ -38,6 +44,11 @@ class MatchAdminCard extends StatelessWidget {
 
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+
+  /// Superadmin lifecycle actions; when null the entry is hidden.
+  final VoidCallback? onFinish;
+  final VoidCallback? onCancel;
+  final VoidCallback? onPostpone;
 
   static String _formatDateTime(DateTime value) {
     final local = value.toLocal();
@@ -109,8 +120,15 @@ class MatchAdminCard extends StatelessWidget {
             tooltip: 'Más acciones',
             color: AppColors.surface,
             onSelected: (String value) {
-              if (value == 'edit') {
-                onEdit();
+              switch (value) {
+                case 'edit':
+                  onEdit();
+                case 'finish':
+                  onFinish?.call();
+                case 'cancel':
+                  onCancel?.call();
+                case 'postpone':
+                  onPostpone?.call();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -121,6 +139,30 @@ class MatchAdminCard extends StatelessWidget {
                   style: TextStyle(color: AppColors.textPrimary),
                 ),
               ),
+              if (onFinish != null)
+                const PopupMenuItem<String>(
+                  value: 'finish',
+                  child: Text(
+                    'Finalizar',
+                    style: TextStyle(color: AppColors.textPrimary),
+                  ),
+                ),
+              if (onPostpone != null)
+                const PopupMenuItem<String>(
+                  value: 'postpone',
+                  child: Text(
+                    'Posponer',
+                    style: TextStyle(color: AppColors.textPrimary),
+                  ),
+                ),
+              if (onCancel != null)
+                const PopupMenuItem<String>(
+                  value: 'cancel',
+                  child: Text(
+                    'Cancelar partido',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                ),
             ],
           ),
           IconButton(

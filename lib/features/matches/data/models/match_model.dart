@@ -10,12 +10,18 @@ class MatchStatusConverter {
     'IN_PROGRESS': MatchStatus.inProgress,
     'ONGOING': MatchStatus.inProgress,
     'FINISHED': MatchStatus.finished,
+    'CANCELLED': MatchStatus.cancelled,
+    'POSTPONED': MatchStatus.postponed,
+    'SUSPENDED': MatchStatus.suspended,
   };
 
   static const Map<MatchStatus, String> _toApi = <MatchStatus, String>{
     MatchStatus.scheduled: 'SCHEDULED',
     MatchStatus.inProgress: 'ONGOING',
     MatchStatus.finished: 'FINISHED',
+    MatchStatus.cancelled: 'CANCELLED',
+    MatchStatus.postponed: 'POSTPONED',
+    MatchStatus.suspended: 'SUSPENDED',
   };
 
   MatchStatus fromJson(String json) {
@@ -44,6 +50,9 @@ class MatchModel {
     this.startedAt,
     this.finishedAt,
     this.venue,
+    this.totalPeriods = 4,
+    this.periodDurationMinutes = 10,
+    this.suspensionReason,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
@@ -60,6 +69,10 @@ class MatchModel {
       startedAt: startedAt == null ? null : DateTime.parse(startedAt),
       finishedAt: finishedAt == null ? null : DateTime.parse(finishedAt),
       venue: json['venue'] as String?,
+      totalPeriods: (json['totalPeriods'] as num?)?.toInt() ?? 4,
+      periodDurationMinutes:
+          (json['periodDurationMinutes'] as num?)?.toInt() ?? 10,
+      suspensionReason: json['suspensionReason'] as String?,
     );
   }
 
@@ -73,6 +86,9 @@ class MatchModel {
   final DateTime? startedAt;
   final DateTime? finishedAt;
   final String? venue;
+  final int totalPeriods;
+  final int periodDurationMinutes;
+  final String? suspensionReason;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
@@ -85,6 +101,9 @@ class MatchModel {
     'startedAt': startedAt?.toIso8601String(),
     'finishedAt': finishedAt?.toIso8601String(),
     'venue': venue,
+    'totalPeriods': totalPeriods,
+    'periodDurationMinutes': periodDurationMinutes,
+    'suspensionReason': suspensionReason,
   };
 
   Match toEntity() => Match(
@@ -98,5 +117,8 @@ class MatchModel {
     startedAt: startedAt,
     finishedAt: finishedAt,
     venue: venue,
+    totalPeriods: totalPeriods,
+    periodDurationMinutes: periodDurationMinutes,
+    suspensionReason: suspensionReason,
   );
 }
