@@ -1,6 +1,6 @@
-# 🏀 HoopAnalytics Mobile
+# 🏀 BasketStats Mobile
 
-Flutter client for the HoopAnalytics SaaS platform — real-time basketball match annotation, live scoring, and statistical analysis.
+Flutter client for the BasketStats SaaS platform — real-time basketball match annotation, live scoring, and statistical analysis.
 
 ## Overview
 
@@ -140,7 +140,7 @@ Roles mirror the backend and are decoded from the JWT; the client hides actions 
 ### Prerequisites
 
 - Flutter SDK (latest stable) and Dart in strict mode.
-- A running instance of the HoopAnalytics NestJS backend (defaults to `http://localhost:3000/api/v1` for `dev`).
+- A running instance of the BasketStats NestJS backend (defaults to `http://localhost:3000/api/v1` for `dev`).
 - Android Studio / Xcode for the target platform emulators or devices.
 
 ### Setup
@@ -205,4 +205,4 @@ Implementation is broken into sequential, commit-sized tasks (`T-001` … `T-046
 
 ## Backend
 
-This app consumes the HoopAnalytics NestJS API (PostgreSQL/Supabase). The API is the single source of truth for all data.
+This app consumes the BasketStats NestJS API (PostgreSQL/Supabase). The API is the single source of truth for all data.
