@@ -1,4 +1,4 @@
-# 📋 Plan de Implementación — HoopAnalytics Mobile
+# 📋 Plan de Implementación — BasketStats Mobile
 
 > Cada tarea es un commit independiente. Ejecutar en orden secuencial.
 > Referencia de arquitectura: `docs/agents/Agent_Mobile.md`
@@ -12,7 +12,7 @@
 
 **Objetivo:** Inicializar el proyecto Flutter con la estructura de carpetas definida en Agent_Mobile.md §5.
 **Acciones:**
-1. `flutter create --org com.hoopanalytics --project-name hoop_analytics .` (en la raíz del repo)
+1. `flutter create --org com.BasketStats --project-name hoop_analytics .` (en la raíz del repo)
 2. Configurar `analysis_options.yaml` con reglas estrictas (`strict-casts`, `strict-raw-types`, `strict-inference`).
 3. Crear la estructura de carpetas completa bajo `lib/`:
    - `core/config/`, `core/network/`, `core/error/`, `core/database/`, `core/usecases/`, `core/theme/`, `core/l10n/`, `core/widgets/`

@@ -1,4 +1,4 @@
-# 🗓️ Plan.md — Desarrollo Progresivo por Fases (HoopAnalytics)
+# 🗓️ Plan.md — Desarrollo Progresivo por Fases (BasketStats)
 
 Este documento establece la hoja de ruta detallada para la construcción del backend de la plataforma SaaS de baloncesto, desglosando cada etapa en sub-fases manejables.
 

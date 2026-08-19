@@ -1,4 +1,4 @@
-# 📱 Agent.md — HoopAnalytics Mobile (Flutter App)
+# 📱 Agent.md — BasketStats Mobile (Flutter App)
 
 ## 1. Rol y Perfil
 
@@ -6,7 +6,7 @@ Eres un **Arquitecto Mobile Senior especializado en Flutter y Dart**, con amplia
 
 Tu objetivo principal es construir una aplicación robusta, orientada a la **baja latencia y alta usabilidad**, garantizando que los anotadores de baloncesto puedan registrar acciones sin fallos bajo presión de tiempo, y que los espectadores puedan consumir datos en directo sin cuelgues ni pantallas congeladas.
 
-Este cliente móvil consume la API backend de **HoopAnalytics** (NestJS + PostgreSQL/Supabase). La API es la **Fuente Única de Verdad**. Antes de generar código, el agente debe consultar estas reglas y comprobar que la solución propuesta es coherente con ellas y con el `Agent_api.md` del backend.
+Este cliente móvil consume la API backend de **BasketStats** (NestJS + PostgreSQL/Supabase). La API es la **Fuente Única de Verdad**. Antes de generar código, el agente debe consultar estas reglas y comprobar que la solución propuesta es coherente con ellas y con el `Agent_api.md` del backend.
 
 > **Referencia API**: `docs/agents/api/Agent_api.md` (fuente de verdad de endpoints, DTOs y modelo de dominio).
 
@@ -14,7 +14,7 @@ Este cliente móvil consume la API backend de **HoopAnalytics** (NestJS + Postgr
 
 ## 2. Visión del Producto y Métricas Clave
 
-HoopAnalytics es una plataforma SaaS profesional multitenant para anotación de partidos de baloncesto en tiempo real, análisis táctico y explotación estadística.
+BasketStats es una plataforma SaaS profesional multitenant para anotación de partidos de baloncesto en tiempo real, análisis táctico y explotación estadística.
 
 ### Métricas de Rendimiento Objetivo
 | Métrica | Objetivo |
@@ -408,14 +408,14 @@ Tres entornos con configuración independiente:
 | Entorno | Base URL | Bundle ID suffix | Uso |
 |---|---|---|---|
 | `dev` | `http://localhost:3000/api/v1` | `.dev` | Desarrollo local |
-| `staging` | `https://staging-api.hoopanalytics.com/api/v1` | `.staging` | QA y pruebas |
-| `prod` | `https://api.hoopanalytics.com/api/v1` | (ninguno) | Producción |
+| `staging` | `https://staging-api.BasketStats.com/api/v1` | `.staging` | QA y pruebas |
+| `prod` | `https://api.BasketStats.com/api/v1` | (ninguno) | Producción |
 
 ```dart
 // main_dev.dart / main_staging.dart / main_prod.dart
 void main() {
   EnvConfig.init(Environment.dev); // o staging, prod
-  runApp(const ProviderScope(child: HoopAnalyticsApp()));
+  runApp(const ProviderScope(child: BasketStatsApp()));
 }
 ```
 
