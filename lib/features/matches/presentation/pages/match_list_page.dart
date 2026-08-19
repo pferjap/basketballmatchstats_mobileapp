@@ -147,6 +147,8 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
             ),
             competitionLabel: match.competitionId,
             initialClockSeconds: resumeClock,
+            periodDurationSeconds: match.periodDurationMinutes * 60,
+            totalPeriods: match.totalPeriods,
           ),
         );
       case MatchListMode.spectate:
@@ -158,6 +160,7 @@ class _MatchListPageState extends ConsumerState<MatchListPage> {
             homeTeamName: homeName,
             awayTeamName: awayName,
             competitionLabel: match.competitionId,
+            totalPeriods: match.totalPeriods,
           ),
         );
     }

@@ -176,11 +176,7 @@ class _PeriodClock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final period = score?.currentPeriod;
-    final periodLabel = period == null
-        ? '--'
-        : period <= 4
-        ? 'Q$period'
-        : 'OT${period - 4}';
+    final periodLabel = period == null ? '--' : 'Q$period';
     const labelStyle = TextStyle(
       color: AppColors.textPrimary,
       fontSize: 18,

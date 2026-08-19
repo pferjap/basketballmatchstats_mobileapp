@@ -207,6 +207,32 @@ class MatchesAdminController extends AutoDisposeNotifier<MatchesAdminState> {
     return null;
   }
 
+  /// Finishes an ongoing [matchId] and reloads. Returns `null` on success or
+  /// the backend's message.
+  Future<String?> finishMatch(String matchId) =>
+      _runLifecycle(() => _repository.finishMatch(matchId));
+
+  /// Cancels [matchId] (superadmin) and reloads.
+  Future<String?> cancelMatch(String matchId) =>
+      _runLifecycle(() => _repository.cancelMatch(matchId));
+
+  /// Postpones [matchId] (superadmin) and reloads.
+  Future<String?> postponeMatch(String matchId, {DateTime? scheduledAt}) =>
+      _runLifecycle(
+        () => _repository.postponeMatch(matchId, scheduledAt: scheduledAt),
+      );
+
+  Future<String?> _runLifecycle(Future<Match> Function() action) async {
+    try {
+      await action();
+      _all = await _fetchAll();
+    } on AppException catch (error) {
+      return error.message;
+    }
+    _apply(page: state.page);
+    return null;
+  }
+
   void _setState(MatchesAdminState next) {
     if (_disposed) {
       return;

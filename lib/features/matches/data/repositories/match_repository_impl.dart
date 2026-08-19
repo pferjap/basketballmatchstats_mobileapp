@@ -64,6 +64,33 @@ class MatchRepositoryImpl implements MatchRepository {
   }
 
   @override
+  Future<Match> finishMatch(String matchId) async {
+    final model = await remote.finishMatch(matchId);
+    return model.toEntity();
+  }
+
+  @override
+  Future<Match> cancelMatch(String matchId) async {
+    final model = await remote.cancelMatch(matchId);
+    return model.toEntity();
+  }
+
+  @override
+  Future<Match> postponeMatch(String matchId, {DateTime? scheduledAt}) async {
+    final model = await remote.postponeMatch(
+      matchId,
+      scheduledAt: scheduledAt?.toUtc(),
+    );
+    return model.toEntity();
+  }
+
+  @override
+  Future<Match> suspendMatch(String matchId, String reason) async {
+    final model = await remote.suspendMatch(matchId, reason);
+    return model.toEntity();
+  }
+
+  @override
   Future<Match> createMatch(CreateMatchParams params) async {
     final model = await remote.createMatch(<String, dynamic>{
       'clubId': params.clubId,
@@ -73,6 +100,8 @@ class MatchRepositoryImpl implements MatchRepository {
       'competitionId': ?params.competitionId,
       'seasonId': ?params.seasonId,
       'venue': ?params.venue,
+      'totalPeriods': params.totalPeriods,
+      'periodDurationMinutes': params.periodDurationMinutes,
     });
     return model.toEntity();
   }

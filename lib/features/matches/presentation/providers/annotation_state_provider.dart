@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/match_event.dart';
+import '../../../../core/error/exceptions.dart';
 import '../../domain/repositories/event_repository.dart';
 import '../models/annotation_action.dart';
 import '../models/court_view_args.dart';
@@ -44,6 +45,7 @@ class AnnotationState {
     this.awayTeamId = 'away',
     this.annotatingTeamId = 'home',
     this.currentPeriod = 1,
+    this.totalPeriods = 4,
     this.baseHomeScore = 0,
     this.baseAwayScore = 0,
     this.events = const <RecordedEvent>[],
@@ -53,6 +55,7 @@ class AnnotationState {
     this.isRecording = false,
     this.errorMessage,
     this.resumeClockSeconds,
+    this.isPeriodOver = false,
   });
 
   final String homeTeamId;
@@ -61,6 +64,9 @@ class AnnotationState {
   /// Team currently being annotated (the bottom-bar team dropdown).
   final String annotatingTeamId;
   final int currentPeriod;
+
+  /// Number of regular quarters configured for the match (rule 2.3, no OT).
+  final int totalPeriods;
 
   /// Score before this session's events (loaded from the server).
   final int baseHomeScore;
@@ -80,6 +86,10 @@ class AnnotationState {
   /// Clock seconds to resume from when re-entering the annotation screen.
   /// `null` means use the default period duration.
   final int? resumeClockSeconds;
+
+  /// Whether the current quarter's clock has reached `00:00` (rule 2.2), which
+  /// unlocks advancing to the next quarter.
+  final bool isPeriodOver;
 
   bool get isAnnotatingHome => annotatingTeamId == homeTeamId;
 
@@ -124,6 +134,7 @@ class AnnotationState {
     String? awayTeamId,
     String? annotatingTeamId,
     int? currentPeriod,
+    int? totalPeriods,
     int? baseHomeScore,
     int? baseAwayScore,
     List<RecordedEvent>? events,
@@ -133,6 +144,7 @@ class AnnotationState {
     bool? isRecording,
     String? errorMessage,
     int? resumeClockSeconds,
+    bool? isPeriodOver,
     bool clearSelection = false,
     bool clearError = false,
   }) {
@@ -141,6 +153,7 @@ class AnnotationState {
       awayTeamId: awayTeamId ?? this.awayTeamId,
       annotatingTeamId: annotatingTeamId ?? this.annotatingTeamId,
       currentPeriod: currentPeriod ?? this.currentPeriod,
+      totalPeriods: totalPeriods ?? this.totalPeriods,
       baseHomeScore: baseHomeScore ?? this.baseHomeScore,
       baseAwayScore: baseAwayScore ?? this.baseAwayScore,
       events: events ?? this.events,
@@ -154,6 +167,7 @@ class AnnotationState {
       isRecording: isRecording ?? this.isRecording,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       resumeClockSeconds: resumeClockSeconds ?? this.resumeClockSeconds,
+      isPeriodOver: isPeriodOver ?? this.isPeriodOver,
     );
   }
 }
@@ -184,6 +198,7 @@ class AnnotationController
       awayTeamId: args.away.id,
       annotatingTeamId: args.home.id,
       currentPeriod: args.initialPeriod,
+      totalPeriods: args.totalPeriods,
     );
 
     try {
@@ -239,7 +254,36 @@ class AnnotationController
   }
 
   /// Reports the current game clock so recorded events carry an accurate time.
-  void setGameClock(String value) => _gameClock = value;
+  ///
+  /// Also tracks whether the current quarter has ended (clock at `00:00`) so the
+  /// period selector can gate advancing to the next quarter (rule 2.2).
+  void setGameClock(String value) {
+    _gameClock = value;
+    final over = _isZeroClock(value);
+    if (over != state.isPeriodOver) {
+      state = state.copyWith(isPeriodOver: over);
+    }
+  }
+
+  static bool _isZeroClock(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return false;
+    final minutes = int.tryParse(parts[0]) ?? 0;
+    final seconds = int.tryParse(parts[1]) ?? 0;
+    return minutes == 0 && seconds == 0;
+  }
+
+  /// Suspends annotation with a mandatory [reason] (rule 2.4).
+  Future<String?> suspend(String reason) async {
+    try {
+      await ref.read(matchRepositoryProvider).suspendMatch(arg, reason);
+      return null;
+    } on AppException catch (error) {
+      return error.message;
+    } catch (_) {
+      return 'No se pudo suspender el partido.';
+    }
+  }
 
   /// Step 1 → 2: an action was tapped.
   void selectAction(AnnotationAction action) {
@@ -266,6 +310,7 @@ class AnnotationController
       currentPeriod: period,
       clearSelection: true,
       currentStep: 1,
+      isPeriodOver: false,
     );
   }
 

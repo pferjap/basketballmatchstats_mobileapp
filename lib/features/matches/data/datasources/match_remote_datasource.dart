@@ -88,6 +88,57 @@ class MatchRemoteDataSource {
     );
   }
 
+  /// `PATCH /matches/:id/finish` — finishes an ongoing match.
+  Future<MatchModel> finishMatch(String matchId) async {
+    final body = await _patch('/matches/$matchId/finish');
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// `PATCH /matches/:id/cancel` — cancels a match (superadmin).
+  Future<MatchModel> cancelMatch(String matchId) async {
+    final body = await _patch('/matches/$matchId/cancel');
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// `PATCH /matches/:id/postpone` — postpones a match, optionally rescheduling.
+  Future<MatchModel> postponeMatch(
+    String matchId, {
+    DateTime? scheduledAt,
+  }) async {
+    final body = await _patch(
+      '/matches/$matchId/postpone',
+      data: <String, dynamic>{
+        if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
+      },
+    );
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
+  /// `PATCH /matches/:id/suspend` — suspends an ongoing match with a cause.
+  Future<MatchModel> suspendMatch(String matchId, String reason) async {
+    final body = await _patch(
+      '/matches/$matchId/suspend',
+      data: <String, dynamic>{'reason': reason},
+    );
+    return ApiResponseParser.data(
+      body,
+      (Object? data) =>
+          MatchModel.fromJson((data! as Map).cast<String, dynamic>()),
+    );
+  }
+
   /// `GET /matches/:id/statistics` — score + per-player lines.
   Future<MatchStatisticsModel> getMatchStatistics(String matchId) async {
     final body = await _get('/matches/$matchId/statistics');
